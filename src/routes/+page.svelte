@@ -30,6 +30,10 @@
 			<h2>Matrix Test</h2>
 			<p>Test key switches with real-time matrix visualization</p>
 		</a>
+		<a href="/store" class="card">
+			<h2>Store</h2>
+			<p>Browse and order TypeArt keyboard kits</p>
+		</a>
 	</div>
 </div>
 

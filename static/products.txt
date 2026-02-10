@@ -1,0 +1,41 @@
+# TypeArt Keyboard Kits
+
+name: Type 40
+slug: type-40
+tagline: 40% ortholinear — pure grid, pure focus
+description: A compact 40% ortholinear keyboard kit. 48 keys in a 4x12 grid. Hot-swap sockets, USB-C, and full QMK/VIA support.
+price: 89.00
+placeholder-color: #268bd2
+
+colors:
+  - Slate Black
+  - Arctic White
+  - Navy Blue
+
+stabilizers:
+  - Cherry clip-in | 0.00
+  - Durock V2 screw-in | 5.00
+  - Staebies V2 screw-in | 12.00
+
+wrist-rest: 29.00
+
+---
+
+name: Type QAZ
+slug: type-qaz
+tagline: 35% staggered — minimal, maximal intent
+description: An ultra-compact 35-key staggered layout. No compromises on build quality. Hot-swap sockets, USB-C, and full QMK/VIA support.
+price: 79.00
+placeholder-color: #d33682
+
+colors:
+  - Slate Black
+  - Arctic White
+  - Forest Green
+
+stabilizers:
+  - Cherry clip-in | 0.00
+  - Durock V2 screw-in | 5.00
+  - Staebies V2 screw-in | 12.00
+
+wrist-rest: 25.00

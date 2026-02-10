@@ -18,6 +18,7 @@ Requires **Node.js 22** (via nvm) and **pnpm**. WebHID only works in **Chrome/Ed
 
 - **Configure** (`/configure`) — connect a VIA keyboard, see its layout rendered from the definition JSON, click any key to reassign it from a searchable keycode picker, switch layers, toggle layout options, import/export keymaps as JSON
 - **Matrix Test** (`/test`) — polls the switch matrix at ~60Hz and highlights physically pressed keys in real time
+- **Store** (`/store`) — product listings for keyboard kits with detail pages, variant selection (color, stabilizers, wrist rest), and a working cart with localStorage persistence
 - **Home** (`/`) — landing page with WebHID compatibility check and nav cards
 
 ## Architecture
@@ -139,6 +140,13 @@ All stores use Svelte 5 runes (`$state`, `$derived`). Each is a singleton class 
 - `loadDefinition(path)` / `loadForDevice(vid, pid)` — loads and parses a definition
 - `setLayoutOption(group, choice)` — re-filters visible keys
 
+**`cartStore`** (`cart.svelte.ts`):
+- Fields: `items` (array of `CartItem`)
+- Derived: `totalItems`, `totalPrice`
+- `addItem(product, variants)` — deduplicates by slug+color+stab+wristRest, increments qty if match
+- `updateQuantity(id, qty)`, `removeItem(id)`, `clear()`
+- `persist()` / `hydrate()` — localStorage (`'typeart-cart'`), guarded by `typeof window`
+
 ### Components — `src/components/`
 
 | Component | Props | What it does |
@@ -149,6 +157,9 @@ All stores use Svelte 5 runes (`$state`, `$derived`). Each is a singleton class 
 | `LayerSelector.svelte` | `layerCount`, `activeLayer`, `onselect` | Horizontal tab bar for layers 0 through N-1. |
 | `ConnectionStatus.svelte` | (reads `deviceStore` directly) | Shows connection state: disconnected (gray dot + connect button), connecting (yellow pulsing dot), connected (cyan glowing dot + device name + protocol version + disconnect button), error (red dot + message). |
 | `ImportExport.svelte` | (reads stores directly) | Export button (downloads JSON), import button (file picker, validates, writes to device). |
+| `ProductCard.svelte` | `name`, `slug`, `tagline`, `price`, `placeholderColor` | Product card linking to `/store/{slug}`. Colored placeholder box (4:3 aspect ratio) + product info. |
+| `VariantSelector.svelte` | `label`, `options`, `value`, `onchange` | Reusable labeled `<select>` dropdown for product variants. |
+| `CartBadge.svelte` | `count` | Inline yellow pill badge showing cart item count. Renders nothing when 0. |
 
 ### Pages / Routes
 
@@ -165,7 +176,13 @@ All stores use Svelte 5 runes (`$state`, `$derived`). Each is a singleton class 
 
 **`/test`** (`routes/test/+page.svelte`) — matrix tester. Polls `getSwitchMatrixState()` every 16ms (~60Hz). Parses the bitfield into a `Set<"row,col">` and passes it to `KeyboardLayout` as `pressedKeys`. Shows a live list of pressed key coordinates below the layout.
 
-**`+layout.svelte`** — nav bar (TypeArt logo + Configure / Test links) + `<main>` slot. Imports `app.css`.
+**`/store`** (`routes/store/+page.svelte`) — product listing grid. Load function fetches `static/products.txt` and parses it with the line-based parser.
+
+**`/store/[slug]`** (`routes/store/[slug]/+page.svelte`) — product detail page. Two-column layout (placeholder image + details). Variant selectors for color, stabilizers (with price modifiers), and optional wrist rest checkbox. Live-computed total price via `$derived`. Add to Cart button with brief "Added!" feedback.
+
+**`/store/cart`** (`routes/store/cart/+page.svelte`) — cart page. Lists items with color swatch, variant details, quantity +/- controls, line totals, and remove buttons. Total row at bottom. Checkout button disabled ("Coming soon"). Cart persists via localStorage.
+
+**`+layout.svelte`** — nav bar (TypeArt logo + Configure / Test / Store / Cart links) + `<main>` slot. Imports `app.css`. Cart link shows a badge with the current item count.
 
 **`+layout.ts`** — `export const prerender = true` (required by adapter-static).
 
@@ -217,10 +234,14 @@ src/
 │   │   ├── ranges.ts                # QMK keycode range constants
 │   │   ├── catalog.ts               # ~180 keycodes in 10 categories, getKeycodeEntry
 │   │   └── labels.ts                # getKeycodeLabel (handles parameterized keycodes)
+│   ├── store/
+│   │   ├── types.ts                 # Product, StabilizerOption, VariantSelection, CartItem
+│   │   └── parser.ts               # parseProducts() — line-based products.txt parser
 │   ├── stores/
 │   │   ├── device.svelte.ts         # deviceStore — connection lifecycle
 │   │   ├── keymap.svelte.ts         # keymapStore — 3D keymap, selection, writes
-│   │   └── definition.svelte.ts     # definitionStore — definition, parsed keys, layout options
+│   │   ├── definition.svelte.ts     # definitionStore — definition, parsed keys, layout options
+│   │   └── cart.svelte.ts           # cartStore — shopping cart with localStorage persist
 │   └── utils/
 │       ├── bytes.ts                 # readUint16BE, writeUint16BE, toHex
 │       └── export.ts                # exportKeymap, parseImportedKeymap, downloadJson
@@ -230,18 +251,31 @@ src/
 │   ├── KeycodePicker.svelte         # Category tabs + search + grid
 │   ├── LayerSelector.svelte         # Layer tab bar
 │   ├── ConnectionStatus.svelte      # Connect/disconnect button + status
-│   └── ImportExport.svelte          # Export/import keymap as JSON
+│   ├── ImportExport.svelte          # Export/import keymap as JSON
+│   ├── ProductCard.svelte           # Product card for store listing
+│   ├── VariantSelector.svelte       # Labeled <select> dropdown
+│   └── CartBadge.svelte             # Cart item count badge
 └── routes/
     ├── +layout.svelte               # Nav bar + main slot
     ├── +layout.ts                   # prerender = true
     ├── +page.svelte                 # Home page
     ├── configure/+page.svelte       # Keymap editor
-    └── test/+page.svelte            # Matrix tester
+    ├── test/+page.svelte            # Matrix tester
+    └── store/
+        ├── +page.ts                 # Load: fetch & parse products.txt
+        ├── +page.svelte             # Product listing grid
+        ├── [slug]/
+        │   ├── +page.ts             # Load: find product by slug
+        │   └── +page.svelte         # Product detail + variant selectors
+        └── cart/
+            └── +page.svelte         # Cart with qty controls + totals
 
-static/keyboards/
-├── index.json                       # Registry: [{name, path, vendorId, productId}]
-└── typeart65/
-    └── definition.json              # Sample 65% keyboard (5x15 matrix)
+static/
+├── products.txt                     # Product catalog (human-editable, line-based format)
+└── keyboards/
+    ├── index.json                   # Registry: [{name, path, vendorId, productId}]
+    └── typeart65/
+        └── definition.json          # Sample 65% keyboard (5x15 matrix)
 ```
 
 ## Adding a Keyboard Definition
@@ -317,9 +351,7 @@ Zero runtime dependencies. Everything is a dev dependency compiled away at build
 
 ## Future Phases
 
-Stubbed routes exist at `/store` and `/game` for future expansion:
-
-- **Store** (`/store`) — product pages for keyboard kits, purchase flow
+- **Store checkout** — the Store pages are functional but checkout is stubbed ("Coming soon"). Future: payment integration.
 - **Typing Game** (`/game`) — interactive typing test using the connected keyboard
 - **Macro Editor** — sequence builder using the existing macro buffer protocol commands
 - **Lighting Panel** — RGB/backlight controls pulled from definition menus

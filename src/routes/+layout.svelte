@@ -1,7 +1,14 @@
 <script lang="ts">
 	import '../app.css';
+	import CartBadge from '../components/CartBadge.svelte';
+	import { cartStore } from '$lib/stores/cart.svelte.js';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
+
+	onMount(() => {
+		cartStore.hydrate();
+	});
 </script>
 
 <div class="app">
@@ -10,6 +17,8 @@
 		<div class="nav-links">
 			<a href="/configure">Configure</a>
 			<a href="/test">Test</a>
+			<a href="/store">Store</a>
+			<a href="/store/cart" class="cart-link">Cart<CartBadge count={cartStore.totalItems} /></a>
 		</div>
 	</nav>
 
@@ -63,6 +72,11 @@
 	.nav-links a:hover {
 		color: var(--base1);
 		text-decoration: none;
+	}
+
+	.cart-link {
+		display: inline-flex;
+		align-items: center;
 	}
 
 	.content {

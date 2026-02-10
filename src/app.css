@@ -1,23 +1,26 @@
-/* TypeArt — Solarized Dark Design System */
+/* TypeArt — Vintage Macintosh Design System */
 
 :root {
-	/* Solarized Dark Base */
-	--base03: #002b36;
-	--base02: #073642;
-	--base01: #586e75;
-	--base00: #657b83;
-	--base0: #839496;
-	--base1: #93a1a1;
+	/* Warm Beige Base (Macintosh Platinum era) */
+	--base03: #E8DCC6;
+	--base02: #F2EAD8;
+	--base01: #C4B396;
+	--base00: #8A7A5F;
+	--base0: #4D3F2A;
+	--base1: #2A1E0E;
 
-	/* Solarized Accent Colors */
-	--yellow: #b58900;
-	--orange: #cb4b16;
-	--red: #dc322f;
-	--magenta: #d33682;
-	--violet: #6c71c4;
-	--blue: #268bd2;
-	--cyan: #2aa198;
-	--green: #859900;
+	/* Vintage Apple Accents (Rainbow logo era) */
+	--yellow: #FDB827;
+	--orange: #F5821F;
+	--red: #E03A3E;
+	--magenta: #D44D9E;
+	--violet: #963D97;
+	--blue: #009DDC;
+	--cyan: #1BA8A0;
+	--green: #61BB46;
+
+	/* Text on colored backgrounds */
+	--on-accent: #fff;
 
 	/* Border Radii */
 	--radius-sm: 4px;
@@ -25,8 +28,8 @@
 	--radius-lg: 12px;
 
 	/* Shadows */
-	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+	--shadow-sm: 0 1px 3px rgba(90, 70, 40, 0.12);
+	--shadow-md: 0 4px 12px rgba(90, 70, 40, 0.18);
 }
 
 /* Global Resets */

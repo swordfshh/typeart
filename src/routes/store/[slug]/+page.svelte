@@ -189,7 +189,7 @@
 	.add-btn {
 		padding: 10px 24px;
 		background-color: var(--blue);
-		color: var(--base03);
+		color: var(--on-accent);
 		border: none;
 		border-radius: var(--radius-md);
 		font-size: 0.875rem;

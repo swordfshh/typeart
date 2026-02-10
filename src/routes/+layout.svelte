@@ -46,6 +46,7 @@
 	}
 
 	.logo {
+		font-family: 'Courier 10 Pitch', 'Courier New', Courier, monospace;
 		font-size: 1.25rem;
 		font-weight: 700;
 		color: var(--base1);

@@ -50,6 +50,7 @@
 	}
 
 	.hero h1 {
+		font-family: 'Courier 10 Pitch', 'Courier New', Courier, monospace;
 		font-size: 2.5rem;
 		font-weight: 700;
 		color: var(--base1);
@@ -80,7 +81,7 @@
 		width: 24px;
 		height: 24px;
 		background-color: var(--orange);
-		color: var(--base03);
+		color: var(--on-accent);
 		border-radius: 50%;
 		font-weight: 700;
 		font-size: 0.875rem;

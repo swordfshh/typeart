@@ -189,7 +189,7 @@
 
 	.cat-tab.active {
 		background-color: var(--blue);
-		color: var(--base03);
+		color: var(--on-accent);
 	}
 
 	.keycodes-grid {

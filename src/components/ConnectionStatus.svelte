@@ -123,7 +123,7 @@
 
 	.btn-connect {
 		background-color: var(--blue);
-		color: var(--base03);
+		color: var(--on-accent);
 	}
 
 	.btn-connect:hover {

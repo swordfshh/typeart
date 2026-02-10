@@ -19,7 +19,7 @@
 		height: 18px;
 		padding: 0 5px;
 		background-color: var(--yellow);
-		color: var(--base03);
+		color: var(--on-accent);
 		font-size: 0.7rem;
 		font-weight: 700;
 		border-radius: 9px;

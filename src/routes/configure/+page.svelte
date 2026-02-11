@@ -33,6 +33,7 @@
 		if (!connected && wasConnected) {
 			wasConnected = false;
 			keymapStore.reset();
+			definitionStore.reset();
 		}
 	});
 

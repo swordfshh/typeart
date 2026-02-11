@@ -67,8 +67,11 @@
 		}
 		if (!deviceStore.isConnected) {
 			stopPolling();
+			closeConsumerDevice();
 			matrixPressedKeys = new Set();
 			encoderPressedKeys = new Set();
+			encoderQmkMap.clear();
+			definitionStore.reset();
 		}
 	});
 
@@ -157,11 +160,10 @@
 		const info = deviceStore.transport?.deviceInfo;
 		if (!info) return;
 
-		if (!definitionStore.definition) {
-			const found = await definitionStore.loadForDevice(info.vendorId, info.productId);
-			if (!found && definitionStore.registry.length > 0) {
-				await definitionStore.loadDefinition(definitionStore.registry[0].path);
-			}
+		// Always reload definition for the connected device
+		const found = await definitionStore.loadForDevice(info.vendorId, info.productId);
+		if (!found && definitionStore.registry.length > 0) {
+			await definitionStore.loadDefinition(definitionStore.registry[0].path);
 		}
 
 		await loadEncoderKeycodes();
@@ -180,25 +182,11 @@
 			}
 
 			try {
-				const matrixState = await deviceStore.protocol.getSwitchMatrixState();
-				const newPressed = new Set<string>();
+				const rawMatrix = await deviceStore.protocol.getSwitchMatrixState();
 				const cols = definitionStore.cols;
+				const rows = definitionStore.rows;
 				const bytesPerRow = Math.ceil(cols / 8);
-
-				// QMK packs matrix big-endian: high byte first
-				// For 14 cols: byte 0 = cols 8-13, byte 1 = cols 0-7
-				for (let row = 0; row < definitionStore.rows; row++) {
-					for (let col = 0; col < cols; col++) {
-						const byteInRow = bytesPerRow - 1 - Math.floor(col / 8);
-						const byteIdx = row * bytesPerRow + byteInRow;
-						const bitIdx = col % 8;
-						if (matrixState[byteIdx] & (1 << bitIdx)) {
-							newPressed.add(`${row},${col}`);
-						}
-					}
-				}
-
-				matrixPressedKeys = newPressed;
+				matrixPressedKeys = parseMatrix(rawMatrix, rows, cols, bytesPerRow);
 			} catch {
 				// Ignore polling errors (device may disconnect)
 			}
@@ -211,6 +199,22 @@
 			pollInterval = null;
 		}
 		polling = false;
+	}
+
+	function parseMatrix(data: Uint8Array, rows: number, cols: number, bytesPerRow: number): Set<string> {
+		const pressed = new Set<string>();
+		for (let row = 0; row < rows; row++) {
+			for (let col = 0; col < cols; col++) {
+				// QMK packs matrix big-endian: high byte first
+				const byteInRow = bytesPerRow - 1 - Math.floor(col / 8);
+				const byteIdx = row * bytesPerRow + byteInRow;
+				const bitIdx = col % 8;
+				if (byteIdx < data.length && data[byteIdx] & (1 << bitIdx)) {
+					pressed.add(`${row},${col}`);
+				}
+			}
+		}
+		return pressed;
 	}
 
 	/** Return 0 for all keys — matrix tester only shows pressed state, not keycodes */

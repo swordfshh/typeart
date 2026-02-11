@@ -8,6 +8,8 @@ import { ViaCommand, KeyboardValue } from './commands.js';
 import { BUFFER_CHUNK_SIZE, KEYCODE_SIZE } from './constants.js';
 
 export class ViaProtocol {
+	private version = 0;
+
 	constructor(private transport: HIDTransport) {}
 
 	/**
@@ -16,7 +18,8 @@ export class ViaProtocol {
 	 */
 	async getProtocolVersion(): Promise<number> {
 		const res = await this.send(ViaCommand.GetProtocolVersion);
-		return (res[1] << 8) | res[2];
+		this.version = (res[1] << 8) | res[2];
+		return this.version;
 	}
 
 	/**
@@ -126,11 +129,11 @@ export class ViaProtocol {
 	/**
 	 * Get the switch matrix state (which keys are physically pressed).
 	 * Returns a byte array where each bit represents a key in the matrix.
+	 * Protocol V12+ includes a row offset byte before data; earlier versions don't.
 	 */
 	async getSwitchMatrixState(): Promise<Uint8Array> {
 		const res = await this.send(ViaCommand.GetKeyboardValue, [KeyboardValue.SwitchMatrixState]);
-		// Skip cmd byte, keyboard value byte, and row offset byte
-		return res.subarray(3);
+		return res.subarray(this.version >= 12 ? 3 : 2);
 	}
 
 	/**

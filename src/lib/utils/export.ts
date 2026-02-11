@@ -12,6 +12,7 @@ export interface ExportedKeymap {
 	rows: number;
 	cols: number;
 	keymap: number[][][];
+	encoders?: number[][][];
 }
 
 /**
@@ -21,13 +22,14 @@ export function exportKeymap(
 	name: string,
 	vendorId: string,
 	productId: string,
-	keymap: number[][][]
+	keymap: number[][][],
+	encoderKeymap?: number[][][]
 ): ExportedKeymap {
 	const layers = keymap.length;
 	const rows = keymap[0]?.length ?? 0;
 	const cols = keymap[0]?.[0]?.length ?? 0;
 
-	return {
+	const result: ExportedKeymap = {
 		version: 1,
 		name,
 		vendorId,
@@ -37,6 +39,12 @@ export function exportKeymap(
 		cols,
 		keymap
 	};
+
+	if (encoderKeymap && encoderKeymap.length > 0) {
+		result.encoders = encoderKeymap;
+	}
+
+	return result;
 }
 
 /**

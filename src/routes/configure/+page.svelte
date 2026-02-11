@@ -55,7 +55,11 @@
 
 		// Load keymap from device
 		try {
-			await keymapStore.loadFromDevice(definitionStore.rows, definitionStore.cols);
+			await keymapStore.loadFromDevice(
+				definitionStore.rows,
+				definitionStore.cols,
+				definitionStore.encoderCount
+			);
 		} catch (err) {
 			loadError = `Failed to read keymap: ${err instanceof Error ? err.message : 'unknown error'}`;
 		}
@@ -65,7 +69,11 @@
 		loadError = '';
 		await definitionStore.loadDefinition(path);
 		if (deviceStore.isConnected && definitionStore.definition) {
-			await keymapStore.loadFromDevice(definitionStore.rows, definitionStore.cols);
+			await keymapStore.loadFromDevice(
+				definitionStore.rows,
+				definitionStore.cols,
+				definitionStore.encoderCount
+			);
 		}
 	}
 
@@ -75,13 +83,11 @@
 	}
 
 	async function handleKeycodeSelect(keycode: number) {
-		const sel = keymapStore.selectedKey;
-		if (!sel) return;
-		await keymapStore.setKeycode(sel.layer, sel.row, sel.col, keycode);
+		await keymapStore.setKeycodeForSelected(keycode);
 	}
 
-	function getKeycode(row: number, col: number): number {
-		return keymapStore.getKeycode(keymapStore.activeLayer, row, col);
+	function getKeycodeForKey(key: ParsedKey): number {
+		return keymapStore.getKeycodeForKey(keymapStore.activeLayer, key);
 	}
 </script>
 
@@ -147,9 +153,8 @@
 				{:else}
 					<KeyboardLayout
 						keys={definitionStore.activeKeys}
-						keycodes={getKeycode}
-						selectedRow={keymapStore.selectedKey?.row ?? -1}
-						selectedCol={keymapStore.selectedKey?.col ?? -1}
+						keycodes={getKeycodeForKey}
+						selectedKey={keymapStore.selectedKey?.key ?? null}
 						onkeyclick={handleKeyClick}
 					/>
 				{/if}
@@ -159,10 +164,9 @@
 				<div class="picker-container">
 					<KeycodePicker
 						currentKeycode={keymapStore.selectedKey
-							? keymapStore.getKeycode(
+							? keymapStore.getKeycodeForKey(
 									keymapStore.selectedKey.layer,
-									keymapStore.selectedKey.row,
-									keymapStore.selectedKey.col
+									keymapStore.selectedKey.key
 								)
 							: 0}
 						onselect={handleKeycodeSelect}

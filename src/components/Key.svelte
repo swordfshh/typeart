@@ -14,6 +14,20 @@
 	let { parsedKey, keycode, selected = false, pressed = false, unitSize = 54, onclick }: Props = $props();
 
 	const label = $derived(getKeycodeLabel(keycode));
+	const isEncoder = $derived(!!parsedKey.encoder);
+	const dirLabel = $derived(
+		parsedKey.encoder?.direction === 0 ? '\u21ba' :
+		parsedKey.encoder?.direction === 1 ? '\u21bb' :
+		''
+	);
+
+	const titleText = $derived.by(() => {
+		if (parsedKey.encoder) {
+			const dir = parsedKey.encoder.direction === 0 ? 'CCW' : 'CW';
+			return `Encoder ${parsedKey.encoder.id} ${dir}: 0x${keycode.toString(16).padStart(4, '0')}`;
+		}
+		return `${parsedKey.row},${parsedKey.col}: 0x${keycode.toString(16).padStart(4, '0')}`;
+	});
 
 	const style = $derived.by(() => {
 		const gap = 4;
@@ -39,10 +53,14 @@
 	class="key"
 	class:selected
 	class:pressed
+	class:encoder={isEncoder}
 	{style}
 	onclick={onclick}
-	title={`${parsedKey.row},${parsedKey.col}: 0x${keycode.toString(16).padStart(4, '0')}`}
+	title={titleText}
 >
+	{#if isEncoder}
+		<span class="encoder-dir">{dirLabel}</span>
+	{/if}
 	<span class="label" style:font-size={fontSize}>{label}</span>
 </button>
 
@@ -77,6 +95,30 @@
 	.key.pressed {
 		border-color: var(--cyan);
 		background-color: color-mix(in srgb, var(--base02) 70%, var(--cyan));
+	}
+
+	.key.encoder {
+		border-radius: 50%;
+		border-color: var(--violet);
+	}
+
+	.key.encoder:hover {
+		border-color: var(--blue);
+		background-color: color-mix(in srgb, var(--base02) 85%, var(--blue));
+	}
+
+	.key.encoder.selected {
+		border-color: var(--yellow);
+	}
+
+	.encoder-dir {
+		font-size: 0.5rem;
+		color: var(--base01);
+		position: absolute;
+		top: 2px;
+		left: 0;
+		right: 0;
+		text-align: center;
 	}
 
 	.label {

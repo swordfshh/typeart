@@ -4,9 +4,8 @@
 
 	interface Props {
 		keys: ParsedKey[];
-		keycodes: (row: number, col: number) => number;
-		selectedRow?: number;
-		selectedCol?: number;
+		keycodes: (key: ParsedKey) => number;
+		selectedKey?: ParsedKey | null;
 		pressedKeys?: Set<string>;
 		unitSize?: number;
 		onkeyclick?: (key: ParsedKey) => void;
@@ -15,12 +14,21 @@
 	let {
 		keys,
 		keycodes,
-		selectedRow = -1,
-		selectedCol = -1,
+		selectedKey = null,
 		pressedKeys = new Set<string>(),
 		unitSize = 54,
 		onkeyclick
 	}: Props = $props();
+
+	function keyId(key: ParsedKey): string {
+		if (key.encoder) return `enc:${key.encoder.id}:${key.encoder.direction}`;
+		return `${key.row},${key.col}`;
+	}
+
+	function isSelected(key: ParsedKey): boolean {
+		if (!selectedKey) return false;
+		return keyId(key) === keyId(selectedKey);
+	}
 
 	/** Calculate the bounding box to size the container, accounting for offset */
 	const bounds = $derived.by(() => {
@@ -48,12 +56,12 @@
 
 <div class="keyboard-layout" style:width="{bounds.width}px" style:height="{bounds.height}px">
 	<div class="keyboard-offset" style:transform="translate({-bounds.offsetX}px, {-bounds.offsetY}px)">
-		{#each keys as key (key.row + ',' + key.col + ',' + key.optionGroup + ',' + key.optionChoice)}
+		{#each keys as key (keyId(key))}
 			<Key
 				parsedKey={key}
-				keycode={keycodes(key.row, key.col)}
-				selected={key.row === selectedRow && key.col === selectedCol}
-				pressed={pressedKeys.has(key.row + ',' + key.col)}
+				keycode={keycodes(key)}
+				selected={isSelected(key)}
+				pressed={pressedKeys.has(keyId(key))}
 				{unitSize}
 				onclick={() => onkeyclick?.(key)}
 			/>

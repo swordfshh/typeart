@@ -14,7 +14,8 @@
 			def.name,
 			def.vendorId,
 			def.productId,
-			keymapStore.keymap
+			keymapStore.keymap,
+			keymapStore.encoderKeymap.length > 0 ? keymapStore.encoderKeymap : undefined
 		);
 
 		downloadJson(data, `${def.name.toLowerCase().replace(/\s+/g, '-')}-keymap.json`);
@@ -33,7 +34,7 @@
 		try {
 			const text = await file.text();
 			const data = parseImportedKeymap(text);
-			await keymapStore.importKeymap(data.keymap);
+			await keymapStore.importKeymap(data.keymap, data.encoders);
 		} catch (err) {
 			importError = err instanceof Error ? err.message : 'Import failed';
 		}

@@ -32,8 +32,6 @@ export function parseKLELayout(rows: KLERow[]): ParsedKey[] {
 		curX = curRx;
 		curY += 1;
 
-		let firstKeyInRow = true;
-
 		for (const item of row) {
 			if (typeof item === 'object' && item !== null) {
 				// Property object — update state
@@ -51,11 +49,7 @@ export function parseKLELayout(rows: KLERow[]): ParsedKey[] {
 
 				if (props.x !== undefined) curX += props.x;
 				if (props.y !== undefined) {
-					if (firstKeyInRow) {
-						curY += props.y - 1; // Counteract the auto +1 at row start
-					} else {
-						curY += props.y;
-					}
+					curY += props.y;
 				}
 
 				if (props.w !== undefined) nextW = props.w;
@@ -71,8 +65,6 @@ export function parseKLELayout(rows: KLERow[]): ParsedKey[] {
 					continue;
 				}
 			} else {
-				firstKeyInRow = false;
-
 				// String item — this is a key
 				const legends = (item as string).split('\n');
 

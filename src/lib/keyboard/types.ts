@@ -34,6 +34,21 @@ export interface ParsedKey {
 	optionGroup: number;
 	/** Layout option choice index */
 	optionChoice: number;
+	/** If present, this key represents an encoder action */
+	encoder?: {
+		id: number;
+		direction: 0 | 1;
+	};
+}
+
+/** Visual placement of a rotary encoder on the layout */
+export interface EncoderDefinition {
+	x: number;
+	y: number;
+	w?: number;
+	h?: number;
+	/** Matrix [row, col] of the encoder push button (if it has one) */
+	push?: [number, number];
 }
 
 /** VIA v3 keyboard definition format */
@@ -45,6 +60,7 @@ export interface KeyboardDefinition {
 		rows: number;
 		cols: number;
 	};
+	encoders?: EncoderDefinition[];
 	layouts: {
 		labels?: (string | string[])[];
 		keymap: KLERow[];

@@ -61,6 +61,8 @@ QMK Keyboard firmware
 | `getKeycode(layer, row, col)` | `0x04` | Single read |
 | `getLayoutOptions()` / `setLayoutOptions()` | `0x02` | 32-bit bitmask |
 | `getSwitchMatrixState()` | `0x03` | Bitfield, big-endian byte order (MSB first per QMK) |
+| `getEncoderKeycode(layer, id, dir)` | `0x14` | 16-bit keycode; dir 0=CCW, 1=CW |
+| `setEncoderKeycode(layer, id, dir, kc)` | `0x15` | Requires `encoder_map: true` in QMK firmware |
 
 **Byte encoding**: keycodes are 16-bit big-endian. Parameterized:
 - `LT(layer, kc)` = `0x4000 | (layer << 8) | kc`
@@ -70,7 +72,7 @@ QMK Keyboard firmware
 
 ### Keyboard Definitions — `src/lib/keyboard/`
 
-- **`types.ts`** — `KeyboardDefinition` (VIA v3 JSON), `ParsedKey` (position/size/rotation/matrix-coords)
+- **`types.ts`** — `KeyboardDefinition` (VIA v3 JSON), `ParsedKey` (position/size/rotation/matrix-coords/encoder), `EncoderDefinition`
 - **`kle-parser.ts`** — `parseKLELayout(rows)` converts KLE JSON → `ParsedKey[]`; `filterKeysByLayoutOptions()` filters by layout choices
 - **`definition.ts`** — fetch registry, load definitions, match by VID/PID (strips `0x` prefix, case-insensitive hex compare)
 
@@ -86,15 +88,15 @@ QMK Keyboard firmware
 All Svelte 5 rune-based singletons:
 
 - **`deviceStore`** — `transport`, `protocol`, `connectionState`. Manual state control (no race between callback and field assignment)
-- **`keymapStore`** — 3D `keymap[layer][row][col]`, `activeLayer`, `selectedKey`. Optimistic local update + device write
-- **`definitionStore`** — `definition`, `activeKeys` (filtered by layout options), `rows`/`cols`. Auto-detect by VID/PID
+- **`keymapStore`** — 3D `keymap[layer][row][col]`, `encoderKeymap[layer][id][dir]`, `activeLayer`, `selectedKey`. Optimistic local update + device write. Encoder-aware routing via `getKeycodeForKey()`/`setKeycodeForSelected()`
+- **`definitionStore`** — `definition`, `activeKeys` (filtered by layout options + encoder virtual keys), `rows`/`cols`, `encoderCount`. Auto-detect by VID/PID
 - **`cartStore`** — shopping cart with localStorage persist (`'typeart-cart'`)
 
 ### Components — `src/components/`
 
 | Component | Key details |
 |---|---|
-| `Key.svelte` | Absolute-positioned key button. Label from `getKeycodeLabel()`. States: hover (blue), selected (yellow glow), pressed (cyan) |
+| `Key.svelte` | Absolute-positioned key button. Label from `getKeycodeLabel()`. States: hover (blue), selected (yellow glow), pressed (cyan). Encoder keys rendered circular with violet border + direction indicator (↺/↻) |
 | `KeyboardLayout.svelte` | Renders `ParsedKey[]`. Computes bounding box with minX/minY offset for centering. Inner div with CSS translate |
 | `KeycodePicker.svelte` | Always visible when keymap loaded. 6 category tabs + search + keycode grid + LT/MT builder toggle + "Any" key input. No close button |
 | `AnyKeyInput.svelte` | Text input for QMK keycode strings with live preview. Uses `parseKeycodeString()` |
@@ -195,7 +197,8 @@ static/
     ├── index.json                   # Registry: [{name, path, vendorId, productId}]
     ├── typeart65/definition.json    # TypeArt 65 placeholder (5×15)
     ├── space65/definition.json      # Graystudio Space65 R1 (0x4753:0x3000)
-    └── space65r3/definition.json    # Graystudio Space65 R3 (0x4753:0x3003)
+    ├── space65r3/definition.json    # Graystudio Space65 R3 (0x4753:0x3003)
+    └── lux40v2/definition.json     # Lux40v2 (0x4C4D:0x0001, 4×14, 1 encoder)
 ```
 
 ## Adding a Keyboard Definition
@@ -238,13 +241,35 @@ Zero runtime dependencies — everything compiled away at build time.
 ## Known Limitations
 
 - **No macro editor** — macros display as M(0)–M(15) but no UI to edit sequences
-- **No encoder support** — rotary encoder commands defined but not exposed
+- **Encoder rotation not detectable in matrix tester** — VIA's `getSwitchMatrixState` only reports physical switches; encoder rotation is processed internally by QMK. Encoder push buttons also require matrix wiring to appear
+- **Encoder VIA support requires firmware flag** — `encoder_map: true` must be in QMK `keyboard.json` features for VIA commands `0x14`/`0x15` to work
 - **No lighting panel** — RGB/backlight keycodes assignable but no dedicated config UI
 - **Import writes key-by-key** — could use `DynamicKeymapSetBuffer` for bulk writes
 - **Single device** — one keyboard at a time
 - **Store checkout stubbed** — cart works, checkout says "Coming soon"
 
 ## Changelog
+
+### 2026-02-11
+
+**Lux40v2 keyboard support**
+- Added Lux40v2 definition (swordfshh, 0x4C4D:0x0001, 4×14 matrix, 1 rotary encoder)
+
+**KLE parser fix**
+- Fixed y-offset handling in `kle-parser.ts`: `curY += props.y - 1` was wrong — y offsets are additive, not replacements for auto-increment. Removed `firstKeyInRow` conditional entirely
+
+**Matrix tester byte-offset fix**
+- Fixed `getSwitchMatrixState()` in `via-protocol.ts`: QMK writes matrix data at `data[3]` (`command_data = &data[1]`, matrix at `command_data[2]`), was reading from `data[2]`
+
+**Rotary encoder support**
+- Encoders defined in `KeyboardDefinition.encoders[]` with `{x, y, w?, h?, push?}` position/size
+- Each encoder generates two virtual `ParsedKey` entries (CCW/CW) with `encoder: {id, direction}` discriminator — reuses existing key selection + keycode picker flow
+- `definitionStore` generates encoder virtual keys, appends to `activeKeys`
+- `keymapStore` manages `encoderKeymap[layer][encoderId][direction]`, routes reads/writes through encoder-specific VIA protocol commands (`0x14`/`0x15`)
+- `Key.svelte` renders encoder keys as circular buttons with violet border and direction indicators (↺ CCW, ↻ CW)
+- `KeyboardLayout.svelte` uses `keyId()` helper for unified key identity (matrix `"row,col"` vs encoder `"enc:id:dir"`)
+- Export/import preserves encoder keycodes in optional `encoders` field
+- Encoder loading is resilient — falls back to zeros if firmware doesn't support `encoder_map`
 
 ### 2026-02-10
 

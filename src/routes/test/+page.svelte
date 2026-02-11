@@ -91,7 +91,7 @@
 	}
 
 	/** Return 0 for all keys — matrix tester only shows pressed state, not keycodes */
-	function noKeycodes(_row: number, _col: number): number {
+	function noKeycodes(_key: import('$lib/keyboard/types.js').ParsedKey): number {
 		return 0;
 	}
 </script>

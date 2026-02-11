@@ -16,5 +16,11 @@
 		"path": "space65r3",
 		"vendorId": "0x4753",
 		"productId": "0x3003"
+	},
+	{
+		"name": "Lux40v2",
+		"path": "lux40v2",
+		"vendorId": "0x4C4D",
+		"productId": "0x0001"
 	}
 ]

@@ -22,9 +22,59 @@ class DefinitionStore {
 	/** Loading state */
 	loading = $state(false);
 
-	/** Filtered keys based on current layout option selections */
+	/** Number of encoders defined */
+	get encoderCount(): number {
+		return this.definition?.encoders?.length ?? 0;
+	}
+
+	/** Generate encoder virtual keys from definition */
+	get encoderKeys(): ParsedKey[] {
+		const encoders = this.definition?.encoders;
+		if (!encoders || encoders.length === 0) return [];
+
+		const keys: ParsedKey[] = [];
+		for (let i = 0; i < encoders.length; i++) {
+			const enc = encoders[i];
+			const w = enc.w ?? 1;
+			const h = enc.h ?? 1;
+
+			// CCW key (left)
+			keys.push({
+				row: -1, col: i * 2,
+				x: enc.x, y: enc.y, w, h,
+				w2: 0, h2: 0, x2: 0, y2: 0,
+				r: 0, rx: 0, ry: 0,
+				optionGroup: -1, optionChoice: -1,
+				encoder: { id: i, direction: 0 }
+			});
+
+			// CW key (right, adjacent)
+			keys.push({
+				row: -1, col: i * 2 + 1,
+				x: enc.x + w, y: enc.y, w, h,
+				w2: 0, h2: 0, x2: 0, y2: 0,
+				r: 0, rx: 0, ry: 0,
+				optionGroup: -1, optionChoice: -1,
+				encoder: { id: i, direction: 1 }
+			});
+
+			// Push button (regular matrix key, centered below CW/CCW)
+			if (enc.push) {
+				keys.push({
+					row: enc.push[0], col: enc.push[1],
+					x: enc.x + w * 0.5, y: enc.y + h, w, h,
+					w2: 0, h2: 0, x2: 0, y2: 0,
+					r: 0, rx: 0, ry: 0,
+					optionGroup: -1, optionChoice: -1
+				});
+			}
+		}
+		return keys;
+	}
+
+	/** Filtered keys based on current layout option selections, plus encoder keys */
 	get activeKeys(): ParsedKey[] {
-		return filterKeysByLayoutOptions(this.allKeys, this.layoutOptionValues);
+		return [...filterKeysByLayoutOptions(this.allKeys, this.layoutOptionValues), ...this.encoderKeys];
 	}
 
 	/** Matrix dimensions */

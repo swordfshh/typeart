@@ -129,8 +129,8 @@ export class ViaProtocol {
 	 */
 	async getSwitchMatrixState(): Promise<Uint8Array> {
 		const res = await this.send(ViaCommand.GetKeyboardValue, [KeyboardValue.SwitchMatrixState]);
-		// Skip cmd byte and keyboard value byte
-		return res.subarray(2);
+		// Skip cmd byte, keyboard value byte, and row offset byte
+		return res.subarray(3);
 	}
 
 	/**
@@ -139,6 +139,32 @@ export class ViaProtocol {
 	async getFirmwareVersion(): Promise<number> {
 		const res = await this.send(ViaCommand.GetKeyboardValue, [KeyboardValue.FirmwareVersion]);
 		return (res[2] << 24) | (res[3] << 16) | (res[4] << 8) | res[5];
+	}
+
+	/**
+	 * Get the keycode assigned to an encoder action.
+	 */
+	async getEncoderKeycode(layer: number, encoderId: number, direction: number): Promise<number> {
+		const res = await this.send(ViaCommand.DynamicKeymapGetEncoder, [layer, encoderId, direction]);
+		return (res[4] << 8) | res[5];
+	}
+
+	/**
+	 * Set the keycode assigned to an encoder action.
+	 */
+	async setEncoderKeycode(
+		layer: number,
+		encoderId: number,
+		direction: number,
+		keycode: number
+	): Promise<void> {
+		await this.send(ViaCommand.DynamicKeymapSetEncoder, [
+			layer,
+			encoderId,
+			direction,
+			(keycode >> 8) & 0xff,
+			keycode & 0xff
+		]);
 	}
 
 	/**

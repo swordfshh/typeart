@@ -1,17 +1,19 @@
 <script lang="ts">
 	import { KEYCODE_CATEGORIES, type KeycodeEntry } from '$lib/keycodes/catalog.js';
 	import { getKeycodeLabel } from '$lib/keycodes/labels.js';
+	import AnyKeyInput from './AnyKeyInput.svelte';
+	import CompoundKeycodeBuilder from './CompoundKeycodeBuilder.svelte';
 
 	interface Props {
 		currentKeycode: number;
 		onselect: (keycode: number) => void;
-		onclose: () => void;
 	}
 
-	let { currentKeycode, onselect, onclose }: Props = $props();
+	let { currentKeycode, onselect }: Props = $props();
 
 	let activeCategory = $state(0);
 	let searchQuery = $state('');
+	let showBuilder = $state(false);
 
 	const filteredKeycodes = $derived.by(() => {
 		const cat = KEYCODE_CATEGORIES[activeCategory];
@@ -50,7 +52,11 @@
 	const displayKeycodes = $derived(globalSearch ?? filteredKeycodes);
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onclose();
+		if (e.key === 'Escape') {
+			// Deselect current key on Escape
+			const active = document.activeElement as HTMLElement | null;
+			active?.blur();
+		}
 	}
 </script>
 
@@ -58,12 +64,28 @@
 
 <div class="picker">
 	<div class="picker-header">
-		<span class="current">
-			Current: <strong>{getKeycodeLabel(currentKeycode)}</strong>
-			<code>0x{currentKeycode.toString(16).padStart(4, '0')}</code>
-		</span>
-		<button class="close-btn" onclick={onclose}>×</button>
+		{#if currentKeycode !== 0}
+			<span class="current">
+				Selected: <strong>{getKeycodeLabel(currentKeycode)}</strong>
+				<code>0x{currentKeycode.toString(16).padStart(4, '0')}</code>
+			</span>
+		{:else}
+			<span class="current hint">Click a key above to select it</span>
+		{/if}
+		<div class="header-actions">
+			<button
+				class="builder-toggle"
+				class:active={showBuilder}
+				onclick={() => (showBuilder = !showBuilder)}
+			>
+				LT / MT
+			</button>
+		</div>
 	</div>
+
+	{#if showBuilder}
+		<CompoundKeycodeBuilder {onselect} />
+	{/if}
 
 	<input
 		class="search"
@@ -99,6 +121,8 @@
 			</button>
 		{/each}
 	</div>
+
+	<AnyKeyInput {onselect} />
 </div>
 
 <style>
@@ -107,7 +131,7 @@
 		border: 1px solid var(--base01);
 		border-radius: var(--radius-lg);
 		padding: 16px;
-		max-height: 400px;
+		max-height: 520px;
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
@@ -134,20 +158,35 @@
 		margin-left: 8px;
 	}
 
-	.close-btn {
-		width: 28px;
-		height: 28px;
+	.header-actions {
 		display: flex;
 		align-items: center;
-		justify-content: center;
-		border-radius: var(--radius-sm);
-		font-size: 1.25rem;
-		color: var(--base00);
-		transition: background-color 100ms ease;
+		gap: 6px;
 	}
 
-	.close-btn:hover {
-		background-color: var(--base03);
+	.builder-toggle {
+		padding: 4px 10px;
+		font-size: 0.75rem;
+		border-radius: var(--radius-sm);
+		color: var(--base00);
+		border: 1px solid var(--base01);
+		transition: background-color 100ms ease, color 100ms ease, border-color 100ms ease;
+	}
+
+	.builder-toggle:hover {
+		border-color: var(--blue);
+		color: var(--base0);
+	}
+
+	.builder-toggle.active {
+		background-color: var(--blue);
+		color: var(--on-accent);
+		border-color: var(--blue);
+	}
+
+	.hint {
+		font-style: italic;
+		color: var(--base01);
 	}
 
 	.search {

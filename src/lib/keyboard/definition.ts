@@ -33,11 +33,13 @@ export async function findDefinitionForDevice(
 	const registry = await fetchKeyboardRegistry();
 
 	// VIA definitions store vendor/product IDs as hex strings like "0x1234"
-	const vid = '0x' + vendorId.toString(16).toUpperCase().padStart(4, '0');
-	const pid = '0x' + productId.toString(16).toUpperCase().padStart(4, '0');
+	const vid = vendorId.toString(16).toLowerCase().padStart(4, '0');
+	const pid = productId.toString(16).toLowerCase().padStart(4, '0');
 
 	const entry = registry.find((e) => {
-		return e.vendorId.toUpperCase() === vid || e.productId.toUpperCase() === pid;
+		const eVid = e.vendorId.replace(/^0x/i, '').toLowerCase().padStart(4, '0');
+		const ePid = e.productId.replace(/^0x/i, '').toLowerCase().padStart(4, '0');
+		return eVid === vid && ePid === pid;
 	});
 
 	if (!entry) return null;

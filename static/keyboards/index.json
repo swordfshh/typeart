@@ -4,5 +4,17 @@
 		"path": "typeart65",
 		"vendorId": "0x5441",
 		"productId": "0x0065"
+	},
+	{
+		"name": "Graystudio Space65",
+		"path": "space65",
+		"vendorId": "0x4753",
+		"productId": "0x3000"
+	},
+	{
+		"name": "GrayStudio Space65 R3",
+		"path": "space65r3",
+		"vendorId": "0x4753",
+		"productId": "0x3003"
 	}
 ]

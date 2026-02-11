@@ -54,6 +54,19 @@ export const QK_RGB_MAX = 0x511f;
 export const QK_MOUSE_MIN = 0x0000; // Mouse keys are in basic range (CD range)
 export const QK_MOUSE_MAX = 0x00ff;
 
+// Grave Escape
+export const QK_GRAVE_ESCAPE = 0x5c16;
+
+// Space Cadet
+export const QK_SPACE_CADET_MIN = 0x5c56;
+export const QK_SPACE_CADET_MAX = 0x5c5b;
+export const SC_LSPO = 0x5c56;
+export const SC_RSPC = 0x5c57;
+export const SC_LAPO = 0x5c58;
+export const SC_RAPC = 0x5c59;
+export const SC_LCPO = 0x5c5a;
+export const SC_RCPC = 0x5c5b;
+
 // Special keycodes
 export const KC_NO = 0x0000;
 export const KC_TRANSPARENT = 0x0001;

@@ -1,6 +1,6 @@
 /**
  * QMK keycode catalog organized by category.
- * This covers the most commonly used keycodes.
+ * Codes match VIA's keycode mapping (key-to-byte/default.ts).
  */
 
 export interface KeycodeEntry {
@@ -20,9 +20,14 @@ function kc(code: number, name: string, label: string, shortLabel?: string): Key
 	return { code, name, label, shortLabel: shortLabel ?? label };
 }
 
+// ─── Basic ──────────────────────────────────────────────────────────────────
+
 export const BASIC_KEYCODES: KeycodeEntry[] = [
+	// Special
 	kc(0x0000, 'KC_NO', 'None', ''),
 	kc(0x0001, 'KC_TRANSPARENT', 'Trans', '▽'),
+
+	// Letters
 	kc(0x0004, 'KC_A', 'A', 'A'),
 	kc(0x0005, 'KC_B', 'B', 'B'),
 	kc(0x0006, 'KC_C', 'C', 'C'),
@@ -49,6 +54,8 @@ export const BASIC_KEYCODES: KeycodeEntry[] = [
 	kc(0x001b, 'KC_X', 'X', 'X'),
 	kc(0x001c, 'KC_Y', 'Y', 'Y'),
 	kc(0x001d, 'KC_Z', 'Z', 'Z'),
+
+	// Numbers
 	kc(0x001e, 'KC_1', '1', '1'),
 	kc(0x001f, 'KC_2', '2', '2'),
 	kc(0x0020, 'KC_3', '3', '3'),
@@ -59,53 +66,34 @@ export const BASIC_KEYCODES: KeycodeEntry[] = [
 	kc(0x0025, 'KC_8', '8', '8'),
 	kc(0x0026, 'KC_9', '9', '9'),
 	kc(0x0027, 'KC_0', '0', '0'),
+
+	// Editing
 	kc(0x0028, 'KC_ENTER', 'Enter', 'Ent'),
 	kc(0x0029, 'KC_ESCAPE', 'Escape', 'Esc'),
 	kc(0x002a, 'KC_BACKSPACE', 'Backspace', 'Bksp'),
 	kc(0x002b, 'KC_TAB', 'Tab', 'Tab'),
 	kc(0x002c, 'KC_SPACE', 'Space', 'Spc'),
+
+	// Symbols
 	kc(0x002d, 'KC_MINUS', '-', '-'),
 	kc(0x002e, 'KC_EQUAL', '=', '='),
 	kc(0x002f, 'KC_LEFT_BRACKET', '[', '['),
 	kc(0x0030, 'KC_RIGHT_BRACKET', ']', ']'),
 	kc(0x0031, 'KC_BACKSLASH', '\\', '\\'),
+	kc(0x0032, 'KC_NONUS_HASH', 'Non-US #', '#'),
 	kc(0x0033, 'KC_SEMICOLON', ';', ';'),
 	kc(0x0034, 'KC_QUOTE', "'", "'"),
 	kc(0x0035, 'KC_GRAVE', '`', '`'),
 	kc(0x0036, 'KC_COMMA', ',', ','),
 	kc(0x0037, 'KC_DOT', '.', '.'),
 	kc(0x0038, 'KC_SLASH', '/', '/'),
-	kc(0x0039, 'KC_CAPS_LOCK', 'Caps Lock', 'Caps')
-];
 
-export const MODIFIER_KEYCODES: KeycodeEntry[] = [
-	kc(0x00e0, 'KC_LEFT_CTRL', 'Left Ctrl', 'LCtl'),
-	kc(0x00e1, 'KC_LEFT_SHIFT', 'Left Shift', 'LSft'),
-	kc(0x00e2, 'KC_LEFT_ALT', 'Left Alt', 'LAlt'),
-	kc(0x00e3, 'KC_LEFT_GUI', 'Left GUI', 'LGui'),
-	kc(0x00e4, 'KC_RIGHT_CTRL', 'Right Ctrl', 'RCtl'),
-	kc(0x00e5, 'KC_RIGHT_SHIFT', 'Right Shift', 'RSft'),
-	kc(0x00e6, 'KC_RIGHT_ALT', 'Right Alt', 'RAlt'),
-	kc(0x00e7, 'KC_RIGHT_GUI', 'Right GUI', 'RGui')
-];
-
-export const NAVIGATION_KEYCODES: KeycodeEntry[] = [
-	kc(0x003a, 'KC_PRINT_SCREEN', 'Print Screen', 'PScr'),
+	// Lock keys
+	kc(0x0039, 'KC_CAPS_LOCK', 'Caps Lock', 'Caps'),
 	kc(0x0047, 'KC_SCROLL_LOCK', 'Scroll Lock', 'ScrL'),
-	kc(0x0048, 'KC_PAUSE', 'Pause', 'Paus'),
-	kc(0x0049, 'KC_INSERT', 'Insert', 'Ins'),
-	kc(0x004a, 'KC_HOME', 'Home', 'Home'),
-	kc(0x004b, 'KC_PAGE_UP', 'Page Up', 'PgUp'),
-	kc(0x004c, 'KC_DELETE', 'Delete', 'Del'),
-	kc(0x004d, 'KC_END', 'End', 'End'),
-	kc(0x004e, 'KC_PAGE_DOWN', 'Page Down', 'PgDn'),
-	kc(0x004f, 'KC_RIGHT', 'Right', '→'),
-	kc(0x0050, 'KC_LEFT', 'Left', '←'),
-	kc(0x0051, 'KC_DOWN', 'Down', '↓'),
-	kc(0x0052, 'KC_UP', 'Up', '↑')
-];
+	kc(0x0053, 'KC_NUM_LOCK', 'Num Lock', 'NmLk'),
 
-export const FUNCTION_KEYCODES: KeycodeEntry[] = [
+	// F1-F12
 	kc(0x003a, 'KC_F1', 'F1', 'F1'),
 	kc(0x003b, 'KC_F2', 'F2', 'F2'),
 	kc(0x003c, 'KC_F3', 'F3', 'F3'),
@@ -118,22 +106,22 @@ export const FUNCTION_KEYCODES: KeycodeEntry[] = [
 	kc(0x0043, 'KC_F10', 'F10', 'F10'),
 	kc(0x0044, 'KC_F11', 'F11', 'F11'),
 	kc(0x0045, 'KC_F12', 'F12', 'F12'),
-	kc(0x0068, 'KC_F13', 'F13', 'F13'),
-	kc(0x0069, 'KC_F14', 'F14', 'F14'),
-	kc(0x006a, 'KC_F15', 'F15', 'F15'),
-	kc(0x006b, 'KC_F16', 'F16', 'F16'),
-	kc(0x006c, 'KC_F17', 'F17', 'F17'),
-	kc(0x006d, 'KC_F18', 'F18', 'F18'),
-	kc(0x006e, 'KC_F19', 'F19', 'F19'),
-	kc(0x006f, 'KC_F20', 'F20', 'F20'),
-	kc(0x0070, 'KC_F21', 'F21', 'F21'),
-	kc(0x0071, 'KC_F22', 'F22', 'F22'),
-	kc(0x0072, 'KC_F23', 'F23', 'F23'),
-	kc(0x0073, 'KC_F24', 'F24', 'F24')
-];
 
-export const NUMPAD_KEYCODES: KeycodeEntry[] = [
-	kc(0x0053, 'KC_NUM_LOCK', 'Num Lock', 'NmLk'),
+	// Navigation
+	kc(0x0046, 'KC_PRINT_SCREEN', 'Print Screen', 'PScr'),
+	kc(0x0048, 'KC_PAUSE', 'Pause', 'Paus'),
+	kc(0x0049, 'KC_INSERT', 'Insert', 'Ins'),
+	kc(0x004a, 'KC_HOME', 'Home', 'Home'),
+	kc(0x004b, 'KC_PAGE_UP', 'Page Up', 'PgUp'),
+	kc(0x004c, 'KC_DELETE', 'Delete', 'Del'),
+	kc(0x004d, 'KC_END', 'End', 'End'),
+	kc(0x004e, 'KC_PAGE_DOWN', 'Page Down', 'PgDn'),
+	kc(0x004f, 'KC_RIGHT', 'Right', '→'),
+	kc(0x0050, 'KC_LEFT', 'Left', '←'),
+	kc(0x0051, 'KC_DOWN', 'Down', '↓'),
+	kc(0x0052, 'KC_UP', 'Up', '↑'),
+
+	// Numpad
 	kc(0x0054, 'KC_KP_SLASH', 'KP /', 'KP/'),
 	kc(0x0055, 'KC_KP_ASTERISK', 'KP *', 'KP*'),
 	kc(0x0056, 'KC_KP_MINUS', 'KP -', 'KP-'),
@@ -150,74 +138,170 @@ export const NUMPAD_KEYCODES: KeycodeEntry[] = [
 	kc(0x0061, 'KC_KP_9', 'KP 9', 'KP9'),
 	kc(0x0062, 'KC_KP_0', 'KP 0', 'KP0'),
 	kc(0x0063, 'KC_KP_DOT', 'KP .', 'KP.'),
-	kc(0x0067, 'KC_KP_EQUAL', 'KP =', 'KP=')
+	kc(0x0064, 'KC_NONUS_BACKSLASH', 'Non-US \\', 'NU\\'),
+	kc(0x0065, 'KC_APPLICATION', 'App/Menu', 'App'),
+	kc(0x0067, 'KC_KP_EQUAL', 'KP =', 'KP='),
+
+	// Modifiers
+	kc(0x00e0, 'KC_LEFT_CTRL', 'Left Ctrl', 'LCtl'),
+	kc(0x00e1, 'KC_LEFT_SHIFT', 'Left Shift', 'LSft'),
+	kc(0x00e2, 'KC_LEFT_ALT', 'Left Alt', 'LAlt'),
+	kc(0x00e3, 'KC_LEFT_GUI', 'Left GUI', 'LGui'),
+	kc(0x00e4, 'KC_RIGHT_CTRL', 'Right Ctrl', 'RCtl'),
+	kc(0x00e5, 'KC_RIGHT_SHIFT', 'Right Shift', 'RSft'),
+	kc(0x00e6, 'KC_RIGHT_ALT', 'Right Alt', 'RAlt'),
+	kc(0x00e7, 'KC_RIGHT_GUI', 'Right GUI', 'RGui'),
 ];
+
+// ─── Media / System / Consumer ──────────────────────────────────────────────
+// Codes match VIA's key-to-byte mapping
 
 export const MEDIA_KEYCODES: KeycodeEntry[] = [
-	kc(0x00a5, 'KC_AUDIO_VOL_UP', 'Vol Up', 'V+'),
-	kc(0x00a6, 'KC_AUDIO_VOL_DOWN', 'Vol Down', 'V-'),
-	kc(0x00a7, 'KC_AUDIO_MUTE', 'Mute', 'Mute'),
-	kc(0x00a8, 'KC_MEDIA_NEXT_TRACK', 'Next', 'Next'),
-	kc(0x00a9, 'KC_MEDIA_PREV_TRACK', 'Prev', 'Prev'),
-	kc(0x00aa, 'KC_MEDIA_STOP', 'Stop', 'Stop'),
-	kc(0x00ab, 'KC_MEDIA_PLAY_PAUSE', 'Play', 'Play'),
-	kc(0x00b5, 'KC_BRIGHTNESS_UP', 'Bright Up', 'Br+'),
-	kc(0x00b6, 'KC_BRIGHTNESS_DOWN', 'Bright Down', 'Br-')
+	// System
+	kc(0x00a5, 'KC_SYSTEM_POWER', 'Sys Power', 'Pwr'),
+	kc(0x00a6, 'KC_SYSTEM_SLEEP', 'Sys Sleep', 'Slp'),
+	kc(0x00a7, 'KC_SYSTEM_WAKE', 'Sys Wake', 'Wake'),
+
+	// Audio
+	kc(0x00a8, 'KC_AUDIO_MUTE', 'Mute', 'Mute'),
+	kc(0x00a9, 'KC_AUDIO_VOL_UP', 'Vol Up', 'V+'),
+	kc(0x00aa, 'KC_AUDIO_VOL_DOWN', 'Vol Down', 'V-'),
+
+	// Transport
+	kc(0x00ab, 'KC_MEDIA_NEXT_TRACK', 'Next Track', 'Next'),
+	kc(0x00ac, 'KC_MEDIA_PREV_TRACK', 'Prev Track', 'Prev'),
+	kc(0x00ad, 'KC_MEDIA_STOP', 'Stop', 'Stop'),
+	kc(0x00ae, 'KC_MEDIA_PLAY_PAUSE', 'Play/Pause', 'Play'),
+	kc(0x00af, 'KC_MEDIA_SELECT', 'Media Select', 'MSel'),
+	kc(0x00b0, 'KC_MEDIA_EJECT', 'Eject', 'Ejct'),
+	kc(0x00bb, 'KC_MEDIA_FAST_FORWARD', 'Fast Fwd', 'FFwd'),
+	kc(0x00bc, 'KC_MEDIA_REWIND', 'Rewind', 'Rwnd'),
+
+	// Consumer apps
+	kc(0x00b1, 'KC_MAIL', 'Mail', 'Mail'),
+	kc(0x00b2, 'KC_CALCULATOR', 'Calculator', 'Calc'),
+	kc(0x00b3, 'KC_MY_COMPUTER', 'My Computer', 'Comp'),
+
+	// Browser
+	kc(0x00b4, 'KC_WWW_SEARCH', 'WWW Search', 'Srch'),
+	kc(0x00b5, 'KC_WWW_HOME', 'WWW Home', 'WHom'),
+	kc(0x00b6, 'KC_WWW_BACK', 'WWW Back', 'WBak'),
+	kc(0x00b7, 'KC_WWW_FORWARD', 'WWW Forward', 'WFwd'),
+	kc(0x00b8, 'KC_WWW_STOP', 'WWW Stop', 'WStp'),
+	kc(0x00b9, 'KC_WWW_REFRESH', 'WWW Refresh', 'WRef'),
+	kc(0x00ba, 'KC_WWW_FAVORITES', 'WWW Fav', 'WFav'),
+
+	// Brightness
+	kc(0x00bd, 'KC_BRIGHTNESS_UP', 'Bright Up', 'Br+'),
+	kc(0x00be, 'KC_BRIGHTNESS_DOWN', 'Bright Down', 'Br-'),
 ];
 
-export const LAYER_KEYCODES: KeycodeEntry[] = [
-	// MO(layer) — momentary layer activation
-	kc(0x5220, 'MO(0)', 'MO(0)', 'MO0'),
-	kc(0x5221, 'MO(1)', 'MO(1)', 'MO1'),
-	kc(0x5222, 'MO(2)', 'MO(2)', 'MO2'),
-	kc(0x5223, 'MO(3)', 'MO(3)', 'MO3'),
-	kc(0x5224, 'MO(4)', 'MO(4)', 'MO4'),
-	kc(0x5225, 'MO(5)', 'MO(5)', 'MO5'),
-	kc(0x5226, 'MO(6)', 'MO(6)', 'MO6'),
-	kc(0x5227, 'MO(7)', 'MO(7)', 'MO7'),
+// ─── Macro ──────────────────────────────────────────────────────────────────
 
-	// TG(layer) — toggle layer
-	kc(0x5260, 'TG(0)', 'TG(0)', 'TG0'),
-	kc(0x5261, 'TG(1)', 'TG(1)', 'TG1'),
-	kc(0x5262, 'TG(2)', 'TG(2)', 'TG2'),
-	kc(0x5263, 'TG(3)', 'TG(3)', 'TG3'),
-	kc(0x5264, 'TG(4)', 'TG(4)', 'TG4'),
-	kc(0x5265, 'TG(5)', 'TG(5)', 'TG5'),
-	kc(0x5266, 'TG(6)', 'TG(6)', 'TG6'),
-	kc(0x5267, 'TG(7)', 'TG(7)', 'TG7'),
+export const MACRO_KEYCODES: KeycodeEntry[] = Array.from({ length: 16 }, (_, i) =>
+	kc(0x7700 + i, `MACRO_${i}`, `Macro ${i}`, `M${i}`)
+);
 
-	// TO(layer) — switch to layer
-	kc(0x5200, 'TO(0)', 'TO(0)', 'TO0'),
-	kc(0x5201, 'TO(1)', 'TO(1)', 'TO1'),
-	kc(0x5202, 'TO(2)', 'TO(2)', 'TO2'),
-	kc(0x5203, 'TO(3)', 'TO(3)', 'TO3'),
+// ─── Layers ─────────────────────────────────────────────────────────────────
 
-	// TT(layer) — layer tap toggle
-	kc(0x52c0, 'TT(0)', 'TT(0)', 'TT0'),
-	kc(0x52c1, 'TT(1)', 'TT(1)', 'TT1'),
-	kc(0x52c2, 'TT(2)', 'TT(2)', 'TT2'),
-	kc(0x52c3, 'TT(3)', 'TT(3)', 'TT3'),
+function generateLayerKeycodes(): KeycodeEntry[] {
+	const entries: KeycodeEntry[] = [];
+	const types = [
+		{ prefix: 'MO', base: 0x5220, desc: 'Momentary' },
+		{ prefix: 'TG', base: 0x5260, desc: 'Toggle' },
+		{ prefix: 'TO', base: 0x5200, desc: 'To Layer' },
+		{ prefix: 'TT', base: 0x52c0, desc: 'Tap Toggle' },
+		{ prefix: 'OSL', base: 0x5280, desc: 'One Shot Layer' },
+		{ prefix: 'DF', base: 0x5240, desc: 'Default Layer' },
+	];
+	for (const t of types) {
+		for (let i = 0; i <= 15; i++) {
+			entries.push(kc(t.base + i, `${t.prefix}(${i})`, `${t.desc} ${i}`, `${t.prefix}${i}`));
+		}
+	}
+	return entries;
+}
 
-	// OSL(layer) — one shot layer
-	kc(0x5280, 'OSL(0)', 'OSL(0)', 'OSL0'),
-	kc(0x5281, 'OSL(1)', 'OSL(1)', 'OSL1'),
-	kc(0x5282, 'OSL(2)', 'OSL(2)', 'OSL2'),
-	kc(0x5283, 'OSL(3)', 'OSL(3)', 'OSL3'),
+export const LAYER_KEYCODES = generateLayerKeycodes();
 
-	// DF(layer) — default layer
-	kc(0x5240, 'DF(0)', 'DF(0)', 'DF0'),
-	kc(0x5241, 'DF(1)', 'DF(1)', 'DF1'),
-	kc(0x5242, 'DF(2)', 'DF(2)', 'DF2'),
-	kc(0x5243, 'DF(3)', 'DF(3)', 'DF3')
-];
+// ─── Special ────────────────────────────────────────────────────────────────
 
-export const QUANTUM_KEYCODES: KeycodeEntry[] = [
+export const SPECIAL_KEYCODES: KeycodeEntry[] = [
+	// Grave Escape
+	kc(0x5c16, 'QK_GESC', 'Grave Escape', 'GEsc'),
+
+	// Space Cadet
+	kc(0x5c56, 'SC_LSPO', 'LShift / (', 'LSPO'),
+	kc(0x5c57, 'SC_RSPC', 'RShift / )', 'RSPC'),
+	kc(0x5c58, 'SC_LAPO', 'LAlt / (', 'LAPO'),
+	kc(0x5c59, 'SC_RAPC', 'RAlt / )', 'RAPC'),
+	kc(0x5c5a, 'SC_LCPO', 'LCtrl / (', 'LCPO'),
+	kc(0x5c5b, 'SC_RCPC', 'RCtrl / )', 'RCPC'),
+
+	// Shifted symbols (QK_MODS: 0x0200 | basic_kc = Left Shift + key)
+	kc(0x0235, 'KC_TILD', '~', '~'),
+	kc(0x021e, 'KC_EXLM', '!', '!'),
+	kc(0x021f, 'KC_AT', '@', '@'),
+	kc(0x0220, 'KC_HASH', '#', '#'),
+	kc(0x0221, 'KC_DLR', '$', '$'),
+	kc(0x0222, 'KC_PERC', '%', '%'),
+	kc(0x0223, 'KC_CIRC', '^', '^'),
+	kc(0x0224, 'KC_AMPR', '&', '&'),
+	kc(0x0225, 'KC_ASTR', '*', '*'),
+	kc(0x0226, 'KC_LPRN', '(', '('),
+	kc(0x0227, 'KC_RPRN', ')', ')'),
+	kc(0x022d, 'KC_UNDS', '_', '_'),
+	kc(0x022e, 'KC_PLUS', '+', '+'),
+	kc(0x022f, 'KC_LCBR', '{', '{'),
+	kc(0x0230, 'KC_RCBR', '}', '}'),
+	kc(0x0231, 'KC_PIPE', '|', '|'),
+	kc(0x0233, 'KC_COLN', ':', ':'),
+	kc(0x0234, 'KC_DQUO', '"', '"'),
+	kc(0x0236, 'KC_LABK', '<', '<'),
+	kc(0x0237, 'KC_RABK', '>', '>'),
+	kc(0x0238, 'KC_QUES', '?', '?'),
+
+	// F13-F24
+	kc(0x0068, 'KC_F13', 'F13', 'F13'),
+	kc(0x0069, 'KC_F14', 'F14', 'F14'),
+	kc(0x006a, 'KC_F15', 'F15', 'F15'),
+	kc(0x006b, 'KC_F16', 'F16', 'F16'),
+	kc(0x006c, 'KC_F17', 'F17', 'F17'),
+	kc(0x006d, 'KC_F18', 'F18', 'F18'),
+	kc(0x006e, 'KC_F19', 'F19', 'F19'),
+	kc(0x006f, 'KC_F20', 'F20', 'F20'),
+	kc(0x0070, 'KC_F21', 'F21', 'F21'),
+	kc(0x0071, 'KC_F22', 'F22', 'F22'),
+	kc(0x0072, 'KC_F23', 'F23', 'F23'),
+	kc(0x0073, 'KC_F24', 'F24', 'F24'),
+
+	// Mouse keys
+	kc(0x00cd, 'KC_MS_UP', 'Mouse Up', 'Ms↑'),
+	kc(0x00ce, 'KC_MS_DOWN', 'Mouse Down', 'Ms↓'),
+	kc(0x00cf, 'KC_MS_LEFT', 'Mouse Left', 'Ms←'),
+	kc(0x00d0, 'KC_MS_RIGHT', 'Mouse Right', 'Ms→'),
+	kc(0x00d1, 'KC_MS_BTN1', 'Mouse Btn1', 'MsB1'),
+	kc(0x00d2, 'KC_MS_BTN2', 'Mouse Btn2', 'MsB2'),
+	kc(0x00d3, 'KC_MS_BTN3', 'Mouse Btn3', 'MsB3'),
+	kc(0x00d4, 'KC_MS_BTN4', 'Mouse Btn4', 'MsB4'),
+	kc(0x00d5, 'KC_MS_BTN5', 'Mouse Btn5', 'MsB5'),
+	kc(0x00d8, 'KC_MS_WH_UP', 'Wheel Up', 'Wh↑'),
+	kc(0x00d9, 'KC_MS_WH_DOWN', 'Wheel Down', 'Wh↓'),
+	kc(0x00da, 'KC_MS_WH_LEFT', 'Wheel Left', 'Wh←'),
+	kc(0x00db, 'KC_MS_WH_RIGHT', 'Wheel Right', 'Wh→'),
+	kc(0x00dc, 'KC_MS_ACCEL0', 'Accel 0', 'MsA0'),
+	kc(0x00dd, 'KC_MS_ACCEL1', 'Accel 1', 'MsA1'),
+	kc(0x00de, 'KC_MS_ACCEL2', 'Accel 2', 'MsA2'),
+
+	// Quantum
 	kc(0x5c00, 'QK_BOOTLOADER', 'Bootloader', 'Boot'),
 	kc(0x5c01, 'QK_REBOOT', 'Reboot', 'Rbt'),
 	kc(0x5c10, 'QK_DEBUG_TOGGLE', 'Debug Toggle', 'Dbg'),
 	kc(0x5c11, 'QK_CLEAR_EEPROM', 'Clear EEPROM', 'ClEE'),
-	kc(0x5c12, 'QK_MAKE', 'Make', 'Make')
+	kc(0x5c12, 'QK_MAKE', 'Make', 'Make'),
 ];
+
+// ─── Lighting ───────────────────────────────────────────────────────────────
 
 export const LIGHTING_KEYCODES: KeycodeEntry[] = [
 	// Backlight
@@ -239,35 +323,18 @@ export const LIGHTING_KEYCODES: KeycodeEntry[] = [
 	kc(0x5117, 'RGB_VAI', 'RGB Val+', 'RV+'),
 	kc(0x5118, 'RGB_VAD', 'RGB Val-', 'RV-'),
 	kc(0x5119, 'RGB_SPI', 'RGB Speed+', 'RSp+'),
-	kc(0x511a, 'RGB_SPD', 'RGB Speed-', 'RSp-')
+	kc(0x511a, 'RGB_SPD', 'RGB Speed-', 'RSp-'),
 ];
 
-export const MOUSE_KEYCODES: KeycodeEntry[] = [
-	kc(0x00cd, 'KC_MS_UP', 'Mouse Up', 'Ms↑'),
-	kc(0x00ce, 'KC_MS_DOWN', 'Mouse Down', 'Ms↓'),
-	kc(0x00cf, 'KC_MS_LEFT', 'Mouse Left', 'Ms←'),
-	kc(0x00d0, 'KC_MS_RIGHT', 'Mouse Right', 'Ms→'),
-	kc(0x00d1, 'KC_MS_BTN1', 'Mouse Btn1', 'MsB1'),
-	kc(0x00d2, 'KC_MS_BTN2', 'Mouse Btn2', 'MsB2'),
-	kc(0x00d3, 'KC_MS_BTN3', 'Mouse Btn3', 'MsB3'),
-	kc(0x00d8, 'KC_MS_WH_UP', 'Wheel Up', 'Wh↑'),
-	kc(0x00d9, 'KC_MS_WH_DOWN', 'Wheel Down', 'Wh↓')
-];
+// ─── Categories ─────────────────────────────────────────────────────────────
 
-/**
- * All keycode categories in display order.
- */
 export const KEYCODE_CATEGORIES: KeycodeCategory[] = [
 	{ name: 'Basic', keycodes: BASIC_KEYCODES },
-	{ name: 'Modifiers', keycodes: MODIFIER_KEYCODES },
-	{ name: 'Navigation', keycodes: NAVIGATION_KEYCODES },
-	{ name: 'Function', keycodes: FUNCTION_KEYCODES },
-	{ name: 'Numpad', keycodes: NUMPAD_KEYCODES },
 	{ name: 'Media', keycodes: MEDIA_KEYCODES },
+	{ name: 'Macro', keycodes: MACRO_KEYCODES },
 	{ name: 'Layers', keycodes: LAYER_KEYCODES },
-	{ name: 'Quantum', keycodes: QUANTUM_KEYCODES },
+	{ name: 'Special', keycodes: SPECIAL_KEYCODES },
 	{ name: 'Lighting', keycodes: LIGHTING_KEYCODES },
-	{ name: 'Mouse', keycodes: MOUSE_KEYCODES }
 ];
 
 /**

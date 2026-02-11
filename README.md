@@ -1,6 +1,6 @@
 # TypeArt
 
-Live keymap editor for custom QMK keyboards over WebHID. Connect a VIA-enabled keyboard, visualize the layout, click a key, pick a new keycode, and it writes to the firmware instantly.
+Keyboard-first e-commerce store with built-in live keymap editor and matrix tester. Connect a VIA-enabled QMK keyboard over WebHID, visualize the layout, reassign keys from a searchable picker, and flash changes instantly — all in the browser.
 
 ## Quick Start
 
@@ -12,216 +12,134 @@ pnpm preview    # preview production build
 pnpm check      # type-check
 ```
 
-Requires **Node.js 22** (via nvm) and **pnpm**. WebHID only works in **Chrome/Edge**.
+Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On Linux, install udev rules: `sudo cp static/99-typeart.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules`.
 
-## What It Does
+## Pages
 
-- **Configure** (`/configure`) — connect a VIA keyboard, see its layout rendered from the definition JSON, click any key to reassign it from a searchable keycode picker, switch layers, toggle layout options, import/export keymaps as JSON
-- **Matrix Test** (`/test`) — polls the switch matrix at ~60Hz and highlights physically pressed keys in real time
-- **Store** (`/store`) — product listings for keyboard kits with detail pages, variant selection (color, stabilizers, wrist rest), and a working cart with localStorage persistence
-- **Home** (`/`) — landing page with WebHID compatibility check and nav cards
+| Route | Purpose |
+|---|---|
+| `/` | Landing — rainbow-lettered logo, WebHID check, nav cards (Store full-width, Configure + Matrix Test below) |
+| `/store` | Product grid — keyboard kits with detail pages, variant selection, cart with localStorage |
+| `/configure` | Live keymap editor — connect keyboard, auto-detect definition, click-to-reassign keys, always-visible keycode picker with search/categories/LT-MT builder/"Any" key input |
+| `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
 
 ## Architecture
 
-Four layers, each depending only on the one below it:
-
 ```
-UI Components (Svelte)
+UI Components (Svelte 5)
     ↓ reads/writes
-Stores (Svelte 5 runes)
+Stores (Svelte 5 runes — $state, $derived, $effect)
     ↓ calls
 Protocol (VIA command encoder/decoder)
-    ↓ sends/receives 32-byte reports
-Transport (WebHID)
+    ↓ queued 32-byte HID reports
+Transport (WebHID, serialized command queue)
     ↓ USB HID
-QMK Keyboard (STM32)
+QMK Keyboard firmware
 ```
 
 ### Transport — `src/lib/transport/hid-transport.ts`
 
-`HIDTransport` class. Manages one HID device connection.
+`HIDTransport` class. Single HID device connection with serialized command queue.
 
-- Filters devices by `usagePage: 0xFF60, usage: 0x61` (VIA's raw HID interface)
-- Every report is exactly **32 bytes**, report ID `0x00`
-- `sendCommand(data)` sends a report and returns a `Promise<Uint8Array>` that resolves when the keyboard replies (or rejects after 1 second)
-- `sendRaw(data)` sends without waiting for a response
-- Listens for `navigator.hid` disconnect events and fires `onDeviceDisconnect`
-- `requestDevice()` opens the browser picker; `connect()` with no args tries to reconnect to a previously paired device
+- Filters: `usagePage: 0xFF60, usage: 0x61` (VIA raw HID)
+- Reports: **32 bytes**, report ID `0x00`
+- `sendCommand(data)` → queued, one-at-a-time. Returns `Promise<Uint8Array>` (response or 1s timeout)
+- `sendRaw(data)` → fire-and-forget (no queue)
+- Command queue prevents overlapping HID requests that cause protocol corruption
+- `requestDevice()` opens browser picker; `connect()` with no args tries auto-reconnect
 
 ### Protocol — `src/lib/protocol/`
 
-`ViaProtocol` class. Takes an `HIDTransport`, provides typed async methods:
+`ViaProtocol` class wrapping `HIDTransport`:
 
-| Method | VIA Command | What it does |
+| Method | VIA Command | Notes |
 |---|---|---|
-| `getProtocolVersion()` | `0x01` | Returns protocol version (e.g. 12) |
-| `getLayerCount()` | `0x11` | Number of layers |
-| `getFullKeymap(layers, rows, cols)` | `0x12` (bulk) | Reads entire keymap via `DynamicKeymapGetBuffer`, 28 bytes per round trip. A 4-layer 5x15 board = 600 bytes = 22 requests (~50ms) |
-| `setKeycode(layer, row, col, kc)` | `0x05` | Writes one 16-bit keycode |
-| `getKeycode(layer, row, col)` | `0x04` | Reads one keycode |
-| `getLayoutOptions()` / `setLayoutOptions(n)` | `0x02` | Layout variant bitmask |
-| `getSwitchMatrixState()` | `0x03` | Bitfield of currently pressed switches |
-| `getFirmwareVersion()` | `0x04` value | 32-bit firmware version |
+| `getProtocolVersion()` | `0x01` | 16-bit version |
+| `getLayerCount()` | `0x11` | 8-bit count |
+| `getFullKeymap(layers, rows, cols)` | `0x12` bulk | 28 bytes/request via `DynamicKeymapGetBuffer` |
+| `setKeycode(layer, row, col, kc)` | `0x05` | Single 16-bit keycode write |
+| `getKeycode(layer, row, col)` | `0x04` | Single read |
+| `getLayoutOptions()` / `setLayoutOptions()` | `0x02` | 32-bit bitmask |
+| `getSwitchMatrixState()` | `0x03` | Bitfield, big-endian byte order (MSB first per QMK) |
 
-Command IDs and keyboard value IDs are in `commands.ts`. Protocol constants (report size, chunk size) are in `constants.ts`.
-
-**Byte encoding**: keycodes are 16-bit big-endian (high byte first). The `DynamicKeymapGetBuffer` response format is `[cmd, offset_hi, offset_lo, size, ...data]`.
+**Byte encoding**: keycodes are 16-bit big-endian. Parameterized:
+- `LT(layer, kc)` = `0x4000 | (layer << 8) | kc`
+- `MO(layer)` = `0x5220 | layer`, `TG` = `0x5260`, `TO` = `0x5200`, `TT` = `0x52C0`, `OSL` = `0x5280`, `DF` = `0x5240`
+- `MT(mod, kc)` = `0x2000 | (mod << 8) | kc`
+- Mod bits: `0x01` Ctrl, `0x02` Shift, `0x04` Alt, `0x08` GUI; add `0x10` for right-side
 
 ### Keyboard Definitions — `src/lib/keyboard/`
 
-**Types** (`types.ts`):
-- `KeyboardDefinition` — VIA v3 JSON format: name, vendorId, productId, matrix dimensions, layouts (labels + KLE keymap)
-- `ParsedKey` — one key's position/size/rotation/matrix-coords after parsing
-- `KLERow`, `KLEKeyProperties` — raw KLE format types
-
-**KLE Parser** (`kle-parser.ts`):
-- `parseKLELayout(rows)` — converts VIA's KLE-style JSON into `ParsedKey[]`
-- Each KLE row is an array of strings and property objects
-- Matrix position: `"row,col"` in legend index 0 (top-left, separated by `\n`)
-- Layout options: `"group,choice"` in legend index 3 (bottom-right)
-- Property objects set `x`, `y` (offsets), `w`, `h` (size), `r`, `rx`, `ry` (rotation)
-- `filterKeysByLayoutOptions(keys, selections)` — returns only keys matching current layout choices; keys with `optionGroup === -1` always show
-
-**Definition Loader** (`definition.ts`):
-- `fetchKeyboardRegistry()` — loads `static/keyboards/index.json`
-- `fetchKeyboardDefinition(path)` — loads `static/keyboards/<path>/definition.json`
-- `findDefinitionForDevice(vid, pid)` — matches connected device to a definition by vendor/product ID
-- `getLayoutOptions(def)` — extracts layout option labels/choices from the definition
+- **`types.ts`** — `KeyboardDefinition` (VIA v3 JSON), `ParsedKey` (position/size/rotation/matrix-coords)
+- **`kle-parser.ts`** — `parseKLELayout(rows)` converts KLE JSON → `ParsedKey[]`; `filterKeysByLayoutOptions()` filters by layout choices
+- **`definition.ts`** — fetch registry, load definitions, match by VID/PID (strips `0x` prefix, case-insensitive hex compare)
 
 ### Keycodes — `src/lib/keycodes/`
 
-**Ranges** (`ranges.ts`): QMK keycode range constants — `QK_BASIC_MIN/MAX`, `QK_LAYER_TAP_MIN/MAX`, `QK_MOD_TAP_MIN/MAX`, `QK_MOMENTARY_MIN/MAX`, etc.
-
-**Catalog** (`catalog.ts`): ~180 explicitly listed keycodes across 10 categories:
-
-| Category | Examples | Count |
-|---|---|---|
-| Basic | A-Z, 0-9, Enter, Space, punctuation | 42 |
-| Modifiers | LCtrl, LShift, LAlt, LGui, R-variants | 8 |
-| Navigation | Arrows, Home, End, PgUp, PgDn, Insert, Delete | 13 |
-| Function | F1-F24 | 24 |
-| Numpad | KP 0-9, KP operators | 18 |
-| Media | Vol Up/Down, Mute, Play, Next, Prev, Brightness | 9 |
-| Layers | MO(0-7), TG(0-7), TO(0-3), TT(0-3), OSL(0-3), DF(0-3) | 32 |
-| Quantum | Bootloader, Reboot, Debug, Clear EEPROM | 5 |
-| Lighting | BL toggle/step/on/off/up/down, RGB toggle/mode/hue/sat/val/speed | 17 |
-| Mouse | Mouse movement, buttons, scroll wheel | 9 |
-
-Each entry: `{ code, name, label, shortLabel }`. Flat lookup via `getKeycodeEntry(code)`.
-
-**Labels** (`labels.ts`): `getKeycodeLabel(keycode)` handles any 16-bit value:
-- Direct catalog lookup first
-- Then parameterized ranges: `LT(layer,kc)` = `0x4000 | (layer<<8) | kc`, `MT(mod,kc)` = `0x2000 | (mod<<8) | kc`, `MO(layer)` = `0x5220 | layer`, etc.
-- Modifier bitmask decoding for Mod-Tap and Mods keycodes
-- Fallback: hex like `0x1234`
+- **`ranges.ts`** — QMK range constants including `QK_GRAVE_ESCAPE` (0x5C16), Space Cadet (0x5C56–0x5C5B)
+- **`catalog.ts`** — **~216 keycodes** across **6 categories**: Basic (letters/numbers/punctuation/modifiers/nav/F-keys/numpad), Media (corrected VIA consumer range 0xA5–0xBE), Macro (M0–M15), Layers (MO/TG/TO/TT/OSL/DF for 0–15), Special (Grave Escape, Space Cadet, shifted symbols, F13–F24, mouse keys, quantum), Lighting (backlight + RGB)
+- **`labels.ts`** — `getKeycodeLabel(keycode)` handles catalog lookup → parameterized ranges (LT/MT/MO/TG/LM/etc) → hex fallback
+- **`parser.ts`** — QMK string parser for "Any" key input. Supports hex literals, named keycodes with aliases (KC_SPC→KC_SPACE etc.), LT(), MT(), MO(), TG(), TO(), TT(), OSL(), DF(), OSM()
 
 ### Stores — `src/lib/stores/`
 
-All stores use Svelte 5 runes (`$state`, `$derived`). Each is a singleton class instance.
+All Svelte 5 rune-based singletons:
 
-**`deviceStore`** (`device.svelte.ts`):
-- Fields: `transport`, `protocol`, `connectionState`, `deviceName`, `protocolVersion`, `error`
-- `connect()` — opens browser picker, connects, verifies protocol version
-- `reconnect()` — tries to reconnect to a previously paired device (no picker)
-- `disconnect()` — closes connection, resets all fields
-- Auto-resets on device disconnect
-
-**`keymapStore`** (`keymap.svelte.ts`):
-- Fields: `keymap` (3D array `[layer][row][col]`), `activeLayer`, `selectedKey`, `layerCount`, `loading`
-- `loadFromDevice(rows, cols)` — reads layer count then bulk-reads the full keymap
-- `setKeycode(layer, row, col, kc)` — optimistic local update + writes to device
-- `selectKey(key)` / `deselectKey()` / `setActiveLayer(n)` — UI selection state
-- `importKeymap(keymap)` — loads a 3D array and writes every key to the device
-
-**`definitionStore`** (`definition.svelte.ts`):
-- Fields: `definition`, `allKeys`, `layoutOptionValues`, `layoutOptions`, `registry`, `loading`
-- Derived: `activeKeys` (filtered by layout options), `rows`, `cols`
-- `loadRegistry()` — fetches keyboard list
-- `loadDefinition(path)` / `loadForDevice(vid, pid)` — loads and parses a definition
-- `setLayoutOption(group, choice)` — re-filters visible keys
-
-**`cartStore`** (`cart.svelte.ts`):
-- Fields: `items` (array of `CartItem`)
-- Derived: `totalItems`, `totalPrice`
-- `addItem(product, variants)` — deduplicates by slug+color+stab+wristRest, increments qty if match
-- `updateQuantity(id, qty)`, `removeItem(id)`, `clear()`
-- `persist()` / `hydrate()` — localStorage (`'typeart-cart'`), guarded by `typeof window`
+- **`deviceStore`** — `transport`, `protocol`, `connectionState`. Manual state control (no race between callback and field assignment)
+- **`keymapStore`** — 3D `keymap[layer][row][col]`, `activeLayer`, `selectedKey`. Optimistic local update + device write
+- **`definitionStore`** — `definition`, `activeKeys` (filtered by layout options), `rows`/`cols`. Auto-detect by VID/PID
+- **`cartStore`** — shopping cart with localStorage persist (`'typeart-cart'`)
 
 ### Components — `src/components/`
 
-| Component | Props | What it does |
-|---|---|---|
-| `Key.svelte` | `parsedKey`, `keycode`, `selected`, `pressed`, `unitSize`, `onclick` | Absolutely positioned key button. Derives label from keycode. Hover = blue border, selected = yellow glow, pressed = cyan fill. 1u = 54px default. Handles rotation via CSS `transform-origin` + `rotate`. |
-| `KeyboardLayout.svelte` | `keys`, `keycodes(row,col)`, `selectedRow`, `selectedCol`, `pressedKeys`, `unitSize`, `onkeyclick` | Container that renders `Key` for each `ParsedKey`. Computes bounding box from key positions. `keycodes` is a callback, not a data array — the layout calls it per-key. |
-| `KeycodePicker.svelte` | `currentKeycode`, `onselect`, `onclose` | Category tabs + keycode grid + search. Search is cross-category. Shows current keycode info. Escape to close. |
-| `LayerSelector.svelte` | `layerCount`, `activeLayer`, `onselect` | Horizontal tab bar for layers 0 through N-1. |
-| `ConnectionStatus.svelte` | (reads `deviceStore` directly) | Shows connection state: disconnected (gray dot + connect button), connecting (yellow pulsing dot), connected (cyan glowing dot + device name + protocol version + disconnect button), error (red dot + message). |
-| `ImportExport.svelte` | (reads stores directly) | Export button (downloads JSON), import button (file picker, validates, writes to device). |
-| `ProductCard.svelte` | `name`, `slug`, `tagline`, `price`, `placeholderColor` | Product card linking to `/store/{slug}`. Colored placeholder box (4:3 aspect ratio) + product info. |
-| `VariantSelector.svelte` | `label`, `options`, `value`, `onchange` | Reusable labeled `<select>` dropdown for product variants. |
-| `CartBadge.svelte` | `count` | Inline yellow pill badge showing cart item count. Renders nothing when 0. |
-
-### Pages / Routes
-
-**`/`** (`routes/+page.svelte`) — hero heading, WebHID check warning, nav cards to Configure and Test.
-
-**`/configure`** (`routes/configure/+page.svelte`) — the main editor. Flow:
-1. `onMount`: load registry, try auto-reconnect
-2. `$effect`: when `deviceStore.isConnected` changes, auto-detect definition and load keymap
-3. Layout options dropdowns (if definition has them)
-4. Layer tabs
-5. Keyboard layout (click a key to select it)
-6. Keycode picker (slides in when a key is selected, closes on Escape or close button)
-7. Can also manually load a definition for offline browsing
-
-**`/test`** (`routes/test/+page.svelte`) — matrix tester. Polls `getSwitchMatrixState()` every 16ms (~60Hz). Parses the bitfield into a `Set<"row,col">` and passes it to `KeyboardLayout` as `pressedKeys`. Shows a live list of pressed key coordinates below the layout.
-
-**`/store`** (`routes/store/+page.svelte`) — product listing grid. Load function fetches `static/products.txt` and parses it with the line-based parser.
-
-**`/store/[slug]`** (`routes/store/[slug]/+page.svelte`) — product detail page. Two-column layout (placeholder image + details). Variant selectors for color, stabilizers (with price modifiers), and optional wrist rest checkbox. Live-computed total price via `$derived`. Add to Cart button with brief "Added!" feedback.
-
-**`/store/cart`** (`routes/store/cart/+page.svelte`) — cart page. Lists items with color swatch, variant details, quantity +/- controls, line totals, and remove buttons. Total row at bottom. Checkout button disabled ("Coming soon"). Cart persists via localStorage.
-
-**`+layout.svelte`** — nav bar (TypeArt logo + Configure / Test / Store / Cart links) + `<main>` slot. Imports `app.css`. Cart link shows a badge with the current item count.
-
-**`+layout.ts`** — `export const prerender = true` (required by adapter-static).
+| Component | Key details |
+|---|---|
+| `Key.svelte` | Absolute-positioned key button. Label from `getKeycodeLabel()`. States: hover (blue), selected (yellow glow), pressed (cyan) |
+| `KeyboardLayout.svelte` | Renders `ParsedKey[]`. Computes bounding box with minX/minY offset for centering. Inner div with CSS translate |
+| `KeycodePicker.svelte` | Always visible when keymap loaded. 6 category tabs + search + keycode grid + LT/MT builder toggle + "Any" key input. No close button |
+| `AnyKeyInput.svelte` | Text input for QMK keycode strings with live preview. Uses `parseKeycodeString()` |
+| `CompoundKeycodeBuilder.svelte` | Visual LT/MT builder — mode toggle, layer/modifier dropdown, basic keycode dropdown, preview |
+| `LayerSelector.svelte` | Layer tab bar |
+| `ConnectionStatus.svelte` | Connect/disconnect + status dot + device info |
+| `ImportExport.svelte` | Export/import keymap JSON |
+| `ProductCard.svelte` | Store product card |
+| `CartBadge.svelte` | Cart count pill |
 
 ## Design System
 
-Solarized dark via CSS custom properties in `src/app.css`:
+**Vintage Macintosh beige** with **Apple rainbow accents** — defined in `src/app.css`:
 
 | Token | Value | Use |
 |---|---|---|
-| `--base03` | `#002b36` | Page background |
-| `--base02` | `#073642` | Card/panel/key background |
-| `--base01` | `#586e75` | Borders, muted text, scrollbar |
-| `--base00` | `#657b83` | Secondary text, hints |
-| `--base0` | `#839496` | Body text |
-| `--base1` | `#93a1a1` | Emphasis text, headings |
-| `--yellow` | `#b58900` | Selected state, accent |
-| `--orange` | `#cb4b16` | Warnings |
-| `--red` | `#dc322f` | Errors, destructive actions |
-| `--blue` | `#268bd2` | Links, primary actions, hover |
-| `--cyan` | `#2aa198` | Connected state, pressed keys, success |
-| `--green` | `#859900` | Confirm, active |
-| `--violet` | `#6c71c4` | (available, unused so far) |
-| `--magenta` | `#d33682` | (available, unused so far) |
+| `--base03` | `#E8DCC6` | Page background |
+| `--base02` | `#F2EAD8` | Card/panel/key background |
+| `--base01` | `#C4B396` | Borders, muted text |
+| `--base00` | `#8A7A5F` | Secondary text |
+| `--base0` | `#4D3F2A` | Body text |
+| `--base1` | `#2A1E0E` | Headings |
+| `--yellow` | `#FDB827` | Selected state |
+| `--orange` | `#F5821F` | Warnings |
+| `--red` | `#E03A3E` | Errors |
+| `--blue` | `#009DDC` | Links, hover |
+| `--cyan` | `#1BA8A0` | Connected, pressed keys |
+| `--green` | `#61BB46` | Confirm |
+| `--violet` | `#963D97` | Available |
+| `--magenta` | `#D44D9E` | Available |
 
-Radii: `--radius-sm` (4px), `--radius-md` (8px), `--radius-lg` (12px).
-Shadows: `--shadow-sm`, `--shadow-md`.
+**Logo**: "TypeArt" in Courier Prime (italic, weight 560), each letter a muted rainbow color: T(#c4443a) y(#c86a2a) p(#b8941e) e(#4a8c3f) A(#2e7bab) r(#5b4a9e) t(#8b3a8b). Home page cards get a rainbow gradient border on hover via `background: linear-gradient(...) border-box` with rounded corners.
 
-Transitions are 100ms ease on borders/backgrounds. The keycode picker slides in with a 150ms animation.
+**Font loading**: Courier Prime loaded from Google Fonts in `app.html` (ital + wght variants).
 
 ## File Map
 
 ```
 src/
-├── app.css                          # Design tokens, global reset
-├── app.html                         # HTML shell
+├── app.css                          # Design tokens (vintage Macintosh beige), global reset
+├── app.html                         # HTML shell + Google Fonts (Courier Prime)
 ├── app.d.ts                         # SvelteKit type declarations
 ├── lib/
 │   ├── transport/
-│   │   └── hid-transport.ts         # HIDTransport class (WebHID)
+│   │   └── hid-transport.ts         # HIDTransport (WebHID, serialized command queue)
 │   ├── protocol/
 │   │   ├── commands.ts              # ViaCommand and KeyboardValue enums
 │   │   ├── constants.ts             # REPORT_SIZE, BUFFER_CHUNK_SIZE, KEYCODE_SIZE
@@ -229,53 +147,55 @@ src/
 │   ├── keyboard/
 │   │   ├── types.ts                 # KeyboardDefinition, ParsedKey, KLE types
 │   │   ├── kle-parser.ts            # parseKLELayout, filterKeysByLayoutOptions
-│   │   └── definition.ts            # fetch/find definition, getLayoutOptions
+│   │   └── definition.ts            # fetch/find definitions, VID/PID matching
 │   ├── keycodes/
 │   │   ├── ranges.ts                # QMK keycode range constants
-│   │   ├── catalog.ts               # ~180 keycodes in 10 categories, getKeycodeEntry
-│   │   └── labels.ts                # getKeycodeLabel (handles parameterized keycodes)
+│   │   ├── catalog.ts               # ~216 keycodes in 6 categories
+│   │   ├── labels.ts                # getKeycodeLabel (handles all parameterized keycodes)
+│   │   └── parser.ts                # QMK string parser (LT/MT/MO/TG/OSM/hex/named)
 │   ├── store/
-│   │   ├── types.ts                 # Product, StabilizerOption, VariantSelection, CartItem
-│   │   └── parser.ts               # parseProducts() — line-based products.txt parser
+│   │   ├── types.ts                 # Product, CartItem types
+│   │   └── parser.ts                # products.txt line-based parser
 │   ├── stores/
 │   │   ├── device.svelte.ts         # deviceStore — connection lifecycle
 │   │   ├── keymap.svelte.ts         # keymapStore — 3D keymap, selection, writes
-│   │   ├── definition.svelte.ts     # definitionStore — definition, parsed keys, layout options
-│   │   └── cart.svelte.ts           # cartStore — shopping cart with localStorage persist
+│   │   ├── definition.svelte.ts     # definitionStore — parsed keys, layout options
+│   │   └── cart.svelte.ts           # cartStore — localStorage-persisted cart
 │   └── utils/
 │       ├── bytes.ts                 # readUint16BE, writeUint16BE, toHex
 │       └── export.ts                # exportKeymap, parseImportedKeymap, downloadJson
 ├── components/
-│   ├── Key.svelte                   # Single key (position, label, states)
-│   ├── KeyboardLayout.svelte        # Renders all keys in absolute layout
-│   ├── KeycodePicker.svelte         # Category tabs + search + grid
+│   ├── Key.svelte                   # Single key (absolute position, label, states)
+│   ├── KeyboardLayout.svelte        # Renders keys with offset centering
+│   ├── KeycodePicker.svelte         # Category tabs + search + grid (always visible)
+│   ├── AnyKeyInput.svelte           # QMK string input with live preview
+│   ├── CompoundKeycodeBuilder.svelte # Visual LT/MT keycode builder
 │   ├── LayerSelector.svelte         # Layer tab bar
-│   ├── ConnectionStatus.svelte      # Connect/disconnect button + status
-│   ├── ImportExport.svelte          # Export/import keymap as JSON
+│   ├── ConnectionStatus.svelte      # Connect/disconnect + status
+│   ├── ImportExport.svelte          # Export/import keymap JSON
 │   ├── ProductCard.svelte           # Product card for store listing
 │   ├── VariantSelector.svelte       # Labeled <select> dropdown
 │   └── CartBadge.svelte             # Cart item count badge
 └── routes/
-    ├── +layout.svelte               # Nav bar + main slot
+    ├── +layout.svelte               # Nav bar (rainbow logo) + main slot
     ├── +layout.ts                   # prerender = true
-    ├── +page.svelte                 # Home page
+    ├── +page.svelte                 # Home (Store hero + Configure/Test cards)
     ├── configure/+page.svelte       # Keymap editor
     ├── test/+page.svelte            # Matrix tester
     └── store/
         ├── +page.ts                 # Load: fetch & parse products.txt
         ├── +page.svelte             # Product listing grid
-        ├── [slug]/
-        │   ├── +page.ts             # Load: find product by slug
-        │   └── +page.svelte         # Product detail + variant selectors
-        └── cart/
-            └── +page.svelte         # Cart with qty controls + totals
+        ├── [slug]/+page.ts + .svelte # Product detail + variants
+        └── cart/+page.svelte        # Cart with qty controls + totals
 
 static/
-├── products.txt                     # Product catalog (human-editable, line-based format)
+├── products.txt                     # Product catalog (line-based format)
+├── 99-typeart.rules                 # Linux udev rules for HID access
 └── keyboards/
     ├── index.json                   # Registry: [{name, path, vendorId, productId}]
-    └── typeart65/
-        └── definition.json          # Sample 65% keyboard (5x15 matrix)
+    ├── typeart65/definition.json    # TypeArt 65 placeholder (5×15)
+    ├── space65/definition.json      # Graystudio Space65 R1 (0x4753:0x3000)
+    └── space65r3/definition.json    # Graystudio Space65 R3 (0x4753:0x3003)
 ```
 
 ## Adding a Keyboard Definition
@@ -290,82 +210,71 @@ static/
   "matrix": { "rows": 5, "cols": 15 },
   "layouts": {
     "labels": [["Backspace", "2u", "Split"]],
-    "keymap": [
-      ["0,0", "0,1", {"w": 2}, "0,2\n\n\n0,0"]
-    ]
+    "keymap": [["0,0", "0,1", {"w": 2}, "0,2\n\n\n0,0"]]
   }
 }
 ```
 
-2. Add an entry to `static/keyboards/index.json`:
+2. Add to `static/keyboards/index.json`:
 
 ```json
 { "name": "My Board", "path": "my-board", "vendorId": "0x1234", "productId": "0x5678" }
 ```
 
-The keymap array uses KLE format. Each string is `"row,col"` (matrix position in legend 0). Layout option keys add `"\n\n\ngroup,choice"` in legend 3. Property objects before a key set `w`, `h`, `x`, `y`, `r`, `rx`, `ry`.
-
-## Protocol Cheat Sheet
-
-All HID reports are **32 bytes**, report ID `0x00`, sent to usage page `0xFF60` usage `0x61`.
-
-| Action | Bytes sent | Response |
-|---|---|---|
-| Get protocol version | `01 00 ...` | `01 VV VV ...` (16-bit version) |
-| Get layer count | `11 00 ...` | `11 NN ...` (8-bit count) |
-| Get keycode | `04 LL RR CC ...` | `04 LL RR CC HH LL ...` (16-bit keycode) |
-| Set keycode | `05 LL RR CC HH LL ...` | `05 ...` (echo) |
-| Get buffer (bulk) | `12 OH OL SZ ...` | `12 OH OL SZ DD DD ...` (28 data bytes max) |
-| Get layout options | `02 02 ...` | `02 02 B3 B2 B1 B0 ...` (32-bit bitmask) |
-| Get matrix state | `02 03 ...` | `02 03 BB BB BB ...` (bitfield, 1 bit per switch) |
-
-Keycodes are 16-bit big-endian. Parameterized:
-- `LT(layer, kc)` = `0x4000 | (layer << 8) | kc`
-- `MO(layer)` = `0x5220 | layer`
-- `TG(layer)` = `0x5260 | layer`
-- `MT(mod, kc)` = `0x2000 | (mod << 8) | kc`
-- Modifier bits: `0x01` Ctrl, `0x02` Shift, `0x04` Alt, `0x08` GUI, `0x10` = right-side flag
+Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in legend 3.
 
 ## Tech Stack
 
-| What | Version | Why |
+| What | Version | Notes |
 |---|---|---|
-| SvelteKit | 2.50 | Compiled framework, no runtime, fastest option |
-| Svelte | 5.50 | Runes for reactive state without external libraries |
-| TypeScript | 5.9 | Type safety for protocol byte manipulation |
-| Vite | 7.3 | Fast HMR and builds |
-| adapter-static | 3.0 | Prerendered output for GitHub Pages |
-| pnpm | 10.x | Fast, strict package manager |
+| SvelteKit | 2.x | Compiled framework, adapter-static for prerendered output |
+| Svelte | 5.x | Runes ($state, $derived, $effect, $props) |
+| TypeScript | 5.x | Type safety for protocol byte manipulation |
+| Vite | 7.x | Dev server + builds |
+| pnpm | 10.x | Package manager |
 
-Zero runtime dependencies. Everything is a dev dependency compiled away at build time.
+Zero runtime dependencies — everything compiled away at build time.
 
 ## Known Limitations
 
-- **Keycode catalog is partial** — covers ~180 common keycodes. Uncommon QMK keycodes (international, macro slots beyond the picker, custom keycodes) fall back to hex display. The `labels.ts` parameterized decoder handles the full 16-bit range; only the picker catalog needs expanding.
-- **No macro editor** — macros show as `M(0)`, `M(1)` etc. but there's no UI to edit macro sequences. The protocol commands for macro buffer read/write (`0x0C`-`0x10`) exist in the command enum but aren't wired up.
-- **No encoder support** — rotary encoder keycodes (`DynamicKeymapGetEncoder` `0x14` / `SetEncoder` `0x15`) are defined in the command enum but not exposed in the UI.
-- **No lighting controls** — RGB/backlight keycodes can be assigned but there's no dedicated lighting configuration panel.
-- **Import writes key-by-key** — importing a full keymap writes each keycode individually via `setKeycode`. Could be faster using `DynamicKeymapSetBuffer` (`0x13`) for bulk writes.
-- **Single device** — only one keyboard connected at a time.
-- **Sample definition only** — ships with one placeholder 65% definition. Real definitions need to be added per-keyboard.
+- **No macro editor** — macros display as M(0)–M(15) but no UI to edit sequences
+- **No encoder support** — rotary encoder commands defined but not exposed
+- **No lighting panel** — RGB/backlight keycodes assignable but no dedicated config UI
+- **Import writes key-by-key** — could use `DynamicKeymapSetBuffer` for bulk writes
+- **Single device** — one keyboard at a time
+- **Store checkout stubbed** — cart works, checkout says "Coming soon"
 
-## Future Phases
+## Changelog
 
-- **Store checkout** — the Store pages are functional but checkout is stubbed ("Coming soon"). Future: payment integration.
-- **Typing Game** (`/game`) — interactive typing test using the connected keyboard
-- **Macro Editor** — sequence builder using the existing macro buffer protocol commands
-- **Lighting Panel** — RGB/backlight controls pulled from definition menus
-- **Encoder UI** — rotary encoder keycode assignment
-- **Bulk buffer writes** — use `DynamicKeymapSetBuffer` for faster keymap imports
-- **localStorage** — persist last device and definition for faster reconnect
+### 2026-02-10
 
-## Deployment
+**Keycode system overhaul**
+- Rewrote `catalog.ts`: fixed entire media/consumer range (0xA5–0xBE) to match VIA's mapping, fixed Print Screen collision (was 0x3A/F1, now 0x46), added ~60 keycodes (Grave Escape, Space Cadet, shifted symbols, macros M0–M15, mouse keys, F13–F24)
+- Reorganized from 10 categories to 6 VIA-like categories (Basic, Media, Macro, Layers, Special, Lighting)
+- Added QMK string parser (`parser.ts`) for "Any" key input — supports hex, named codes, LT/MT/MO/TG/OSM
+- Added `AnyKeyInput.svelte` (text input with live preview) and `CompoundKeycodeBuilder.svelte` (visual LT/MT builder)
+- KeycodePicker now always visible when keymap loaded (not gated behind key selection)
 
-The build output is a fully static site in `build/`. Deploy to any static host. For GitHub Pages:
+**HID transport reliability**
+- Added command queue to `hid-transport.ts` — serializes all HID communication to prevent overlapping requests causing protocol corruption and device disconnects
+- Fixed `handleInputReport` to use proper `byteOffset`/`byteLength` from DataView
 
-```bash
-pnpm build
-# push build/ to gh-pages branch, or configure GitHub Actions
-```
+**Matrix tester fix**
+- Fixed bit-unpacking byte order: QMK packs switch matrix state big-endian (MSB first), code was reading little-endian — ESC at col 0 was showing as col 8
 
-WebHID requires HTTPS (GitHub Pages provides this automatically).
+**Layout centering**
+- `KeyboardLayout.svelte` now computes minX/minY offset from all keys and applies CSS translate, eliminating dead space for boards like Space65 whose KLE starts at x=2.5
+
+**Keyboard definitions**
+- Added Graystudio Space65 R1 (0x4753:0x3000) and R3 (0x4753:0x3003) definitions
+- Fixed VID/PID auto-detection: AND vs OR logic, case-insensitive hex compare
+
+**Connection reliability**
+- Fixed race condition: transport callback set `connected` before `transport`/`protocol` assigned to store
+- Fixed reconnect: blank keymap on second connect due to stale `$effect` guard
+
+**Visual refresh**
+- Rethemed from Solarized Dark to vintage Macintosh beige with Apple rainbow accents
+- Logo: Courier Prime italic (loaded from Google Fonts), per-letter muted rainbow colors
+- Home page: Store card full-width on top, Configure/Matrix Test side-by-side below, rainbow gradient border on hover with rounded corners
+- Linux udev rules file (`static/99-typeart.rules`) for HID device permissions

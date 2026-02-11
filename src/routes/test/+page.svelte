@@ -59,11 +59,15 @@
 				const matrixState = await deviceStore.protocol.getSwitchMatrixState();
 				const newPressed = new Set<string>();
 				const cols = definitionStore.cols;
+				const bytesPerRow = Math.ceil(cols / 8);
 
-				// Each byte contains 8 bits, each bit represents a column in a row
+				// QMK packs matrix bytes big-endian: MSB first
+				// For 16 cols: byte 0 = cols 8-15, byte 1 = cols 0-7
 				for (let row = 0; row < definitionStore.rows; row++) {
 					for (let col = 0; col < cols; col++) {
-						const byteIdx = row * Math.ceil(cols / 8) + Math.floor(col / 8);
+						// Reverse byte order within the row (big-endian → little-endian)
+						const byteInRow = bytesPerRow - 1 - Math.floor(col / 8);
+						const byteIdx = row * bytesPerRow + byteInRow;
 						const bitIdx = col % 8;
 						if (matrixState[byteIdx] & (1 << bitIdx)) {
 							newPressed.add(`${row},${col}`);

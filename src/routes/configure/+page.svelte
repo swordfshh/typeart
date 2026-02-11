@@ -11,22 +11,27 @@
 	import ImportExport from '../../components/ImportExport.svelte';
 
 	let loadError = $state('');
+	let wasConnected = false;
 
 	onMount(async () => {
 		await definitionStore.loadRegistry();
 		// Try auto-reconnect
 		await deviceStore.reconnect();
 		if (deviceStore.isConnected) {
+			wasConnected = true;
 			await handleDeviceConnected();
 		}
 	});
 
 	// Watch for connection changes
 	$effect(() => {
-		if (deviceStore.isConnected && definitionStore.definition === null) {
+		const connected = deviceStore.isConnected;
+		if (connected && !wasConnected) {
+			wasConnected = true;
 			handleDeviceConnected();
 		}
-		if (!deviceStore.isConnected) {
+		if (!connected && wasConnected) {
+			wasConnected = false;
 			keymapStore.reset();
 		}
 	});
@@ -48,8 +53,12 @@
 			return;
 		}
 
-		// Load keymap
-		await keymapStore.loadFromDevice(definitionStore.rows, definitionStore.cols);
+		// Load keymap from device
+		try {
+			await keymapStore.loadFromDevice(definitionStore.rows, definitionStore.cols);
+		} catch (err) {
+			loadError = `Failed to read keymap: ${err instanceof Error ? err.message : 'unknown error'}`;
+		}
 	}
 
 	async function handleManualLoad(path: string) {
@@ -69,10 +78,6 @@
 		const sel = keymapStore.selectedKey;
 		if (!sel) return;
 		await keymapStore.setKeycode(sel.layer, sel.row, sel.col, keycode);
-	}
-
-	function handlePickerClose() {
-		keymapStore.deselectKey();
 	}
 
 	function getKeycode(row: number, col: number): number {
@@ -150,16 +155,17 @@
 				{/if}
 			</div>
 
-			{#if keymapStore.selectedKey}
+			{#if keymapStore.layerCount > 0}
 				<div class="picker-container">
 					<KeycodePicker
-						currentKeycode={keymapStore.getKeycode(
-							keymapStore.selectedKey.layer,
-							keymapStore.selectedKey.row,
-							keymapStore.selectedKey.col
-						)}
+						currentKeycode={keymapStore.selectedKey
+							? keymapStore.getKeycode(
+									keymapStore.selectedKey.layer,
+									keymapStore.selectedKey.row,
+									keymapStore.selectedKey.col
+								)
+							: 0}
 						onselect={handleKeycodeSelect}
-						onclose={handlePickerClose}
 					/>
 				</div>
 			{/if}
@@ -289,21 +295,6 @@
 	.loading {
 		color: var(--base00);
 		font-size: 0.875rem;
-	}
-
-	.picker-container {
-		animation: slideIn 150ms ease;
-	}
-
-	@keyframes slideIn {
-		from {
-			opacity: 0;
-			transform: translateY(8px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
 	}
 
 	.empty-state {

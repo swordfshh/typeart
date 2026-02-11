@@ -23,11 +23,13 @@ class DeviceStore {
 	 */
 	async connect(): Promise<boolean> {
 		this.error = '';
+		this.connectionState = 'connecting';
 
 		try {
 			const transport = new HIDTransport({
-				onStateChange: (state) => {
-					this.connectionState = state;
+				onStateChange: () => {
+					// Don't update connectionState here — we control it manually
+					// to avoid race conditions with protocol setup
 				},
 				onDeviceDisconnect: () => {
 					this.handleDisconnect();
@@ -36,6 +38,7 @@ class DeviceStore {
 
 			const device = await transport.requestDevice();
 			if (!device) {
+				this.connectionState = 'disconnected';
 				return false;
 			}
 
@@ -48,10 +51,17 @@ class DeviceStore {
 			this.protocol = protocol;
 			this.protocolVersion = version;
 			this.deviceName = transport.deviceInfo?.productName ?? 'Unknown Device';
+			this.connectionState = 'connected';
 
 			return true;
 		} catch (err) {
-			this.error = err instanceof Error ? err.message : 'Connection failed';
+			const msg = err instanceof Error ? err.message : 'Connection failed';
+			if (msg.toLowerCase().includes('failed to open') || msg.toLowerCase().includes('denied')) {
+				this.error =
+					'Failed to open device. On Linux, you need a udev rule for HID access. Download 99-typeart.rules from this site, then run: sudo cp 99-typeart.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger';
+			} else {
+				this.error = msg;
+			}
 			this.connectionState = 'error';
 			return false;
 		}
@@ -65,9 +75,7 @@ class DeviceStore {
 
 		try {
 			const transport = new HIDTransport({
-				onStateChange: (state) => {
-					this.connectionState = state;
-				},
+				onStateChange: () => {},
 				onDeviceDisconnect: () => {
 					this.handleDisconnect();
 				}
@@ -86,6 +94,7 @@ class DeviceStore {
 			this.protocol = protocol;
 			this.protocolVersion = version;
 			this.deviceName = transport.deviceInfo?.productName ?? 'Unknown Device';
+			this.connectionState = 'connected';
 
 			return true;
 		} catch {

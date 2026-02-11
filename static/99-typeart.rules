@@ -1,0 +1,3 @@
+# Allow WebHID access to all HID devices (needed for VIA/QMK keyboards)
+# Install: sudo cp 99-typeart.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666"

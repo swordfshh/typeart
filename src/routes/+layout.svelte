@@ -13,7 +13,7 @@
 
 <div class="app">
 	<nav class="navbar">
-		<a href="/" class="logo">TypeArt</a>
+		<a href="/" class="logo"><span class="r1">T</span><span class="r2">y</span><span class="r3">p</span><span class="r4">e</span><span class="r5">A</span><span class="r6">r</span><span class="r7">t</span></a>
 		<div class="nav-links">
 			<a href="/configure">Configure</a>
 			<a href="/test">Test</a>
@@ -46,16 +46,25 @@
 	}
 
 	.logo {
-		font-family: 'Courier 10 Pitch', 'Courier New', Courier, monospace;
+		font-family: 'Courier Prime', 'Courier New', monospace;
 		font-size: 1.25rem;
-		font-weight: 700;
+		font-weight: 560;
+		font-style: italic;
 		color: var(--base1);
 		letter-spacing: -0.02em;
 	}
 
+	.logo .r1 { color: #c4443a; }
+	.logo .r2 { color: #c86a2a; }
+	.logo .r3 { color: #b8941e; }
+	.logo .r4 { color: #4a8c3f; }
+	.logo .r5 { color: #2e7bab; }
+	.logo .r6 { color: #5b4a9e; }
+	.logo .r7 { color: #8b3a8b; }
+
 	.logo:hover {
 		text-decoration: none;
-		color: var(--yellow);
+		filter: brightness(1.2);
 	}
 
 	.nav-links {

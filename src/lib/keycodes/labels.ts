@@ -103,6 +103,14 @@ export function getKeycodeLabel(keycode: number): string {
 		return `TT(${keycode & 0x1f})`;
 	}
 
+	// Layer Mod: LM(layer, mod) = 0x5000 | (layer << 5) | mod
+	if (keycode >= R.QK_LAYER_MOD_MIN && keycode <= R.QK_LAYER_MOD_MAX) {
+		const param = keycode & 0x01ff;
+		const layer = (param >> 4) & 0x0f;
+		const mod = param & 0x0f;
+		return `LM${layer}(${modBitsToString(mod)})`;
+	}
+
 	// Tap dance
 	if (keycode >= R.QK_TAP_DANCE_MIN && keycode <= R.QK_TAP_DANCE_MAX) {
 		return `TD(${keycode & 0xff})`;

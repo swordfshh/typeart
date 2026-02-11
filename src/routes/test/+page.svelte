@@ -5,9 +5,43 @@
 	import ConnectionStatus from '../../components/ConnectionStatus.svelte';
 	import KeyboardLayout from '../../components/KeyboardLayout.svelte';
 
-	let pressedKeys = $state(new Set<string>());
+	let matrixPressedKeys = $state(new Set<string>());
+	let encoderPressedKeys = $state(new Set<string>());
+	let pressedKeys = $derived(new Set([...matrixPressedKeys, ...encoderPressedKeys]));
 	let polling = $state(false);
 	let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+	// Encoder detection via HID consumer reports + browser keyboard events
+	let encoderQmkMap = new Map<number, string>();
+	let encoderFlashTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	let consumerDevice: HIDDevice | null = null;
+
+	// USB HID consumer usage → QMK keycode mapping
+	const CONSUMER_TO_QMK: Record<number, number> = {
+		0x00e9: 0x00a9, // Volume Up
+		0x00ea: 0x00aa, // Volume Down
+		0x00e2: 0x00a8, // Mute
+		0x00b5: 0x00ab, // Next Track
+		0x00b6: 0x00ac, // Prev Track
+		0x00b7: 0x00ad, // Stop
+		0x00cd: 0x00ae, // Play/Pause
+		0x006f: 0x00b5, // Brightness Up
+		0x0070: 0x00b6, // Brightness Down
+	};
+
+	// Browser event.key → QMK keycode for non-consumer keys
+	const BROWSER_KEY_TO_QMK: Record<string, number> = {
+		ArrowRight: 0x4f, ArrowLeft: 0x50, ArrowDown: 0x51, ArrowUp: 0x52,
+		Home: 0x4a, PageUp: 0x4b, End: 0x4d, PageDown: 0x4e,
+		Escape: 0x29, ' ': 0x2c, Enter: 0x28, Backspace: 0x2a, Tab: 0x2b,
+	};
+	// Letters a-z
+	for (let i = 0; i < 26; i++) BROWSER_KEY_TO_QMK[String.fromCharCode(97 + i)] = 0x04 + i;
+	// Digits 1-9, 0
+	for (let i = 1; i <= 9; i++) BROWSER_KEY_TO_QMK[String(i)] = 0x1d + i;
+	BROWSER_KEY_TO_QMK['0'] = 0x27;
+	// F1-F12
+	for (let i = 1; i <= 12; i++) BROWSER_KEY_TO_QMK[`F${i}`] = 0x39 + i;
 
 	onMount(async () => {
 		await definitionStore.loadRegistry();
@@ -15,10 +49,16 @@
 		if (deviceStore.isConnected) {
 			await handleConnected();
 		}
+		window.addEventListener('keydown', handleKeyDown, true);
 	});
 
 	onDestroy(() => {
 		stopPolling();
+		closeConsumerDevice();
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('keydown', handleKeyDown, true);
+		}
+		for (const timer of encoderFlashTimers.values()) clearTimeout(timer);
 	});
 
 	$effect(() => {
@@ -27,9 +67,91 @@
 		}
 		if (!deviceStore.isConnected) {
 			stopPolling();
-			pressedKeys = new Set();
+			matrixPressedKeys = new Set();
+			encoderPressedKeys = new Set();
 		}
 	});
+
+	async function loadEncoderKeycodes() {
+		const protocol = deviceStore.protocol;
+		if (!protocol) return;
+
+		const count = definitionStore.encoderCount;
+		encoderQmkMap.clear();
+
+		for (let enc = 0; enc < count; enc++) {
+			for (const dir of [0, 1]) {
+				try {
+					const qmkCode = await protocol.getEncoderKeycode(0, enc, dir);
+					if (qmkCode > 0) {
+						encoderQmkMap.set(qmkCode, `enc:${enc}:${dir}`);
+					}
+				} catch { /* skip */ }
+			}
+		}
+	}
+
+	/** Try to open the consumer control HID interface for media key detection */
+	async function openConsumerDevice() {
+		if (!('hid' in navigator)) return;
+		const info = deviceStore.transport?.deviceInfo;
+		if (!info) return;
+
+		try {
+			const devices = await navigator.hid.getDevices();
+			const consumer = devices.find(d =>
+				d.vendorId === info.vendorId &&
+				d.productId === info.productId &&
+				d.collections.some(c => c.usagePage === 0x0c)
+			);
+			if (!consumer) return;
+			if (!consumer.opened) await consumer.open();
+			consumer.addEventListener('inputreport', handleConsumerReport);
+			consumerDevice = consumer;
+		} catch {
+			// Chrome may block consumer control access — fall back to keyboard events
+		}
+	}
+
+	function closeConsumerDevice() {
+		if (consumerDevice) {
+			consumerDevice.removeEventListener('inputreport', handleConsumerReport);
+			consumerDevice = null;
+		}
+	}
+
+	function handleConsumerReport(event: HIDInputReportEvent) {
+		if (event.data.byteLength < 1) return;
+		const usage = event.data.byteLength >= 2
+			? event.data.getUint16(0, true)
+			: event.data.getUint8(0);
+		if (usage === 0) return; // release
+		const qmkCode = CONSUMER_TO_QMK[usage];
+		if (qmkCode !== undefined) {
+			flashEncoder(encoderQmkMap.get(qmkCode));
+		}
+	}
+
+	/** Browser keyboard event fallback — works for non-media encoder keycodes */
+	function handleKeyDown(e: KeyboardEvent) {
+		const qmkCode = BROWSER_KEY_TO_QMK[e.key];
+		if (qmkCode !== undefined) {
+			flashEncoder(encoderQmkMap.get(qmkCode));
+		}
+	}
+
+	function flashEncoder(encId: string | undefined) {
+		if (!encId) return;
+
+		const prev = encoderFlashTimers.get(encId);
+		if (prev) clearTimeout(prev);
+
+		encoderPressedKeys = new Set([...encoderPressedKeys, encId]);
+		encoderFlashTimers.set(encId, setTimeout(() => {
+			encoderPressedKeys = new Set([...encoderPressedKeys].filter(k => k !== encId));
+			encoderFlashTimers.delete(encId);
+		}, 150));
+	}
 
 	async function handleConnected() {
 		const info = deviceStore.transport?.deviceInfo;
@@ -42,6 +164,8 @@
 			}
 		}
 
+		await loadEncoderKeycodes();
+		await openConsumerDevice();
 		startPolling();
 	}
 
@@ -61,11 +185,10 @@
 				const cols = definitionStore.cols;
 				const bytesPerRow = Math.ceil(cols / 8);
 
-				// QMK packs matrix bytes big-endian: MSB first
-				// For 16 cols: byte 0 = cols 8-15, byte 1 = cols 0-7
+				// QMK packs matrix big-endian: high byte first
+				// For 14 cols: byte 0 = cols 8-13, byte 1 = cols 0-7
 				for (let row = 0; row < definitionStore.rows; row++) {
 					for (let col = 0; col < cols; col++) {
-						// Reverse byte order within the row (big-endian → little-endian)
 						const byteInRow = bytesPerRow - 1 - Math.floor(col / 8);
 						const byteIdx = row * bytesPerRow + byteInRow;
 						const bitIdx = col % 8;
@@ -75,7 +198,7 @@
 					}
 				}
 
-				pressedKeys = newPressed;
+				matrixPressedKeys = newPressed;
 			} catch {
 				// Ignore polling errors (device may disconnect)
 			}
@@ -102,7 +225,7 @@
 	{#if definitionStore.definition}
 		<div class="tester">
 			<h2>Matrix Tester</h2>
-			<p class="hint">Press keys on your keyboard to see them highlight in real-time.</p>
+			<p class="hint">Press keys on your keyboard to see them highlight. Encoder rotation is detected via assigned keycodes.</p>
 
 			{#if polling}
 				<span class="polling-indicator">Polling</span>

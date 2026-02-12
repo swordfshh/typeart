@@ -18,6 +18,7 @@
 			<a href="/configure">Configure</a>
 			<a href="/test">Test</a>
 			<a href="/type">Type</a>
+			<a href="/game">Game</a>
 			<a href="/store">Store</a>
 			<a href="/store/cart" class="cart-link">Cart<CartBadge count={cartStore.totalItems} /></a>
 		</div>

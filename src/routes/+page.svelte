@@ -38,6 +38,10 @@
 			<h2>Typing Test</h2>
 			<p>Measure your typing speed with time, words, and quote modes</p>
 		</a>
+		<a href="/game" class="card card-full">
+			<h2>Asteroid Run</h2>
+			<p>Dodge asteroids by typing — your speed steers the ship</p>
+		</a>
 	</div>
 </div>
 

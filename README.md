@@ -91,6 +91,7 @@ All Svelte 5 rune-based singletons:
 - **`keymapStore`** — 3D `keymap[layer][row][col]`, `encoderKeymap[layer][id][dir]`, `activeLayer`, `selectedKey`. Optimistic local update + device write. Encoder-aware routing via `getKeycodeForKey()`/`setKeycodeForSelected()`
 - **`definitionStore`** — `definition`, `activeKeys` (filtered by layout options + encoder virtual keys), `rows`/`cols`, `encoderCount`. Auto-detect by VID/PID
 - **`cartStore`** — shopping cart with localStorage persist (`'typeart-cart'`)
+- **`themeStore`** — theme switcher (retro-beige / miami-nights / godspeed), localStorage persist (`'typeart-theme'`), applies `data-theme` attribute on `<html>`
 
 ### Components — `src/components/`
 
@@ -106,6 +107,18 @@ All Svelte 5 rune-based singletons:
 | `ImportExport.svelte` | Export/import keymap JSON |
 | `ProductCard.svelte` | Store product card |
 | `CartBadge.svelte` | Cart count pill |
+
+## Themes
+
+Three switchable colorways, toggled via the navbar **Theme** button. Choice persists in `localStorage`. Defined as CSS custom property overrides in `src/app.css`, managed by `src/lib/stores/theme.svelte.ts`.
+
+| Theme | Style | Background | Accents |
+|---|---|---|---|
+| **Retro Beige** (default) | Vintage Macintosh Platinum era | Warm beige `#E8DCC6` | Apple rainbow |
+| **Miami Nights** | Dark synthwave | Deep indigo `#0f0e17` | Neon cyan `#0AD2D3` + hot pink `#FF2E97` |
+| **Godspeed** | NASA Apollo mission control | Warm cream `#e3d5b9` | NASA gold `#ffdb58` + powder blue `#5991ae` |
+
+Logo colors, card hover gradients, and all UI tokens adapt per theme.
 
 ## Design System
 
@@ -162,7 +175,8 @@ src/
 │   │   ├── device.svelte.ts         # deviceStore — connection lifecycle
 │   │   ├── keymap.svelte.ts         # keymapStore — 3D keymap, selection, writes
 │   │   ├── definition.svelte.ts     # definitionStore — parsed keys, layout options
-│   │   └── cart.svelte.ts           # cartStore — localStorage-persisted cart
+│   │   ├── cart.svelte.ts           # cartStore — localStorage-persisted cart
+│   │   └── theme.svelte.ts         # themeStore — theme switcher with localStorage
 │   └── utils/
 │       ├── bytes.ts                 # readUint16BE, writeUint16BE, toHex
 │       └── export.ts                # exportKeymap, parseImportedKeymap, downloadJson
@@ -249,6 +263,16 @@ Zero runtime dependencies — everything compiled away at build time.
 - **Store checkout stubbed** — cart works, checkout says "Coming soon"
 
 ## Changelog
+
+### 2026-02-12
+
+**Theme system**
+- Added switchable colorways: Retro Beige (default), Miami Nights, and Godspeed
+- Theme button in navbar (left of Configure) with cyan→violet→pink gradient border
+- Miami Nights: dark indigo base with neon cyan/pink accents (synthwave aesthetic)
+- Godspeed: warm cream base with NASA gold/powder blue accents (Apollo mission control)
+- Logo colors, card hover gradients, and all UI tokens adapt per theme
+- Theme persists to localStorage via `themeStore` (`src/lib/stores/theme.svelte.ts`)
 
 ### 2026-02-11
 

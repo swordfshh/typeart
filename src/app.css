@@ -32,6 +32,54 @@
 	--shadow-md: 0 4px 12px rgba(90, 70, 40, 0.18);
 }
 
+/* Miami Nights — dark indigo + neon cyan/pink */
+[data-theme="miami-nights"] {
+	--base03: #0f0e17;
+	--base02: #1a1928;
+	--base01: #2e2b3f;
+	--base00: #7a7590;
+	--base0: #e0ddf0;
+	--base1: #f5f3ff;
+
+	--yellow: #FFE156;
+	--orange: #FF8A50;
+	--red: #FF3366;
+	--magenta: #FF2E97;
+	--violet: #B537F2;
+	--blue: #00D4FF;
+	--cyan: #0AD2D3;
+	--green: #05FFA1;
+
+	--on-accent: #0f0e17;
+
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Godspeed — NASA Apollo mission control */
+[data-theme="godspeed"] {
+	--base03: #e3d5b9;
+	--base02: #efe4cc;
+	--base01: #c9bda5;
+	--base00: #7d7c78;
+	--base0: #3a3632;
+	--base1: #1e1c1a;
+
+	--yellow: #ffdb58;
+	--orange: #e8a735;
+	--red: #ba1312;
+	--magenta: #c44b4b;
+	--violet: #5b5e9e;
+	--blue: #5991ae;
+	--cyan: #69d0a5;
+	--green: #69d0a5;
+
+	--on-accent: #1e1c1a;
+
+	--shadow-sm: 0 1px 3px rgba(60, 50, 30, 0.15);
+	--shadow-md: 0 4px 12px rgba(60, 50, 30, 0.22);
+}
+
 /* Global Resets */
 *,
 *::before,

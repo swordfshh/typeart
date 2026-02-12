@@ -73,6 +73,22 @@
 	.hero .r6 { color: #5b4a9e; }
 	.hero .r7 { color: #8b3a8b; }
 
+	:global([data-theme="miami-nights"]) .hero .r1 { color: #0AD2D3; }
+	:global([data-theme="miami-nights"]) .hero .r2 { color: #00D4FF; }
+	:global([data-theme="miami-nights"]) .hero .r3 { color: #B537F2; }
+	:global([data-theme="miami-nights"]) .hero .r4 { color: #FF2E97; }
+	:global([data-theme="miami-nights"]) .hero .r5 { color: #0AD2D3; }
+	:global([data-theme="miami-nights"]) .hero .r6 { color: #00D4FF; }
+	:global([data-theme="miami-nights"]) .hero .r7 { color: #FF2E97; }
+
+	:global([data-theme="godspeed"]) .hero .r1 { color: #ffdb58; }
+	:global([data-theme="godspeed"]) .hero .r2 { color: #e8a735; }
+	:global([data-theme="godspeed"]) .hero .r3 { color: #5991ae; }
+	:global([data-theme="godspeed"]) .hero .r4 { color: #ba1312; }
+	:global([data-theme="godspeed"]) .hero .r5 { color: #ffdb58; }
+	:global([data-theme="godspeed"]) .hero .r6 { color: #5991ae; }
+	:global([data-theme="godspeed"]) .hero .r7 { color: #e8a735; }
+
 	.subtitle {
 		margin-top: 8px;
 		font-size: 1.125rem;
@@ -125,7 +141,7 @@
 		display: block;
 		padding: 24px;
 		background: var(--base02);
-		border: 2px solid var(--base01);
+		border: 1.33px solid var(--base01);
 		border-radius: var(--radius-lg);
 		transition: box-shadow 100ms ease;
 	}
@@ -137,6 +153,18 @@
 			linear-gradient(var(--base02), var(--base02)) padding-box,
 			linear-gradient(to right, #e0453b, #e87d2a, #d4a81e, #54a648, #339cc5, #7058b8, #a8449e) border-box;
 		box-shadow: var(--shadow-md);
+	}
+
+	:global([data-theme="miami-nights"]) .card:hover {
+		background:
+			linear-gradient(var(--base02), var(--base02)) padding-box,
+			linear-gradient(to right, #0AD2D3, #00D4FF, #B537F2, #FF2E97, #FF3366) border-box !important;
+	}
+
+	:global([data-theme="godspeed"]) .card:hover {
+		background:
+			linear-gradient(var(--base02), var(--base02)) padding-box,
+			linear-gradient(to right, #ffdb58, #e8a735, #ba1312, #5991ae, #69d0a5) border-box !important;
 	}
 
 	.card-full {

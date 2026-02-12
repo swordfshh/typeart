@@ -34,6 +34,10 @@
 			<h2>Matrix Test</h2>
 			<p>Test key switches with real-time matrix visualization</p>
 		</a>
+		<a href="/type" class="card">
+			<h2>Typing Test</h2>
+			<p>Measure your typing speed with time, words, and quote modes</p>
+		</a>
 	</div>
 </div>
 

@@ -262,6 +262,134 @@ Zero runtime dependencies — everything compiled away at build time.
 - **Single device** — one keyboard at a time
 - **Store checkout stubbed** — cart works, checkout says "Coming soon"
 
+## Roadmap: Backend Services
+
+Transition from static site to `adapter-node` with SQLite backend. Enables typing leaderboards, user accounts, and order tracking. Target deployment: Raspberry Pi 5 with SSD.
+
+### Phase 1 — Adapter & Database
+
+Switch from `adapter-static` to `adapter-node` so SvelteKit can serve API routes.
+
+- [ ] `pnpm remove @sveltejs/adapter-static && pnpm add @sveltejs/adapter-node`
+- [ ] Update `svelte.config.js` — swap adapter import
+- [ ] Add `better-sqlite3` (+ `@types/better-sqlite3`) — single-file DB, no external process
+- [ ] Create `src/lib/server/db.ts` — open/init DB, export query helpers
+- [ ] Schema migration on startup — create tables if not exist
+- [ ] Add `data/` to `.gitignore` for the SQLite file
+
+**Schema (initial):**
+
+```sql
+CREATE TABLE users (
+    id          INTEGER PRIMARY KEY,
+    username    TEXT UNIQUE NOT NULL,
+    email       TEXT UNIQUE NOT NULL,
+    password    TEXT NOT NULL,           -- bcrypt hash
+    created_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE typing_scores (
+    id          INTEGER PRIMARY KEY,
+    user_id     INTEGER REFERENCES users(id),
+    mode        TEXT NOT NULL,           -- 'time:15', 'time:30', 'words:25', 'quote', etc.
+    wpm         REAL NOT NULL,
+    accuracy    REAL NOT NULL,           -- 0–100
+    raw_wpm     REAL,
+    char_count  INTEGER,
+    created_at  TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_scores_mode_wpm ON typing_scores(mode, wpm DESC);
+CREATE INDEX idx_scores_user     ON typing_scores(user_id);
+
+CREATE TABLE orders (
+    id          INTEGER PRIMARY KEY,
+    user_id     INTEGER REFERENCES users(id),
+    status      TEXT DEFAULT 'pending',  -- pending, confirmed, shipped, delivered
+    total       INTEGER NOT NULL,        -- cents
+    created_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE order_items (
+    id          INTEGER PRIMARY KEY,
+    order_id    INTEGER REFERENCES orders(id),
+    product_slug TEXT NOT NULL,
+    variant     TEXT,
+    quantity    INTEGER NOT NULL,
+    unit_price  INTEGER NOT NULL         -- cents
+);
+```
+
+### Phase 2 — Auth
+
+Cookie-based sessions with bcrypt password hashing. No external auth provider.
+
+- [ ] Add `bcrypt` (or `@node-rs/argon2`) for password hashing
+- [ ] Create `src/lib/server/auth.ts` — `register()`, `login()`, `getSession()`, `logout()`
+- [ ] Session strategy: signed HTTP-only cookie → session ID → `sessions` table (or just a signed JWT with user ID, no session table needed for this scale)
+- [ ] API routes:
+  - `POST /api/auth/register` — username, email, password → hash, insert, set cookie
+  - `POST /api/auth/login` — email, password → verify, set cookie
+  - `POST /api/auth/logout` — clear cookie
+  - `GET /api/auth/me` — return current user from cookie (or 401)
+- [ ] `src/lib/stores/auth.svelte.ts` — client-side user state, call `/api/auth/me` on load
+- [ ] SvelteKit `hooks.server.ts` — parse session cookie, attach `event.locals.user`
+- [ ] Rate limit login/register (simple in-memory counter, no Redis needed)
+
+### Phase 3 — Typing Leaderboards
+
+Submit scores from the typing test, display global and per-mode leaderboards.
+
+- [ ] API routes:
+  - `POST /api/scores` — submit score (requires auth). Validate mode, wpm > 0, accuracy 0–100
+  - `GET /api/scores?mode=time:30&limit=50` — top scores for mode (public)
+  - `GET /api/scores/me` — current user's personal bests + history (requires auth)
+- [ ] Update `/type` score screen:
+  - If logged in, show "Submit Score" button after test completes
+  - On submit, POST to `/api/scores`, show confirmation or error
+  - If not logged in, show "Log in to save your score" link
+- [ ] New component: `Leaderboard.svelte` — table with rank, username, WPM, accuracy, date
+- [ ] Add leaderboard tab/section to `/type` — toggle between test and leaderboard view
+- [ ] Anti-cheat (basic): reject WPM > 300, require minimum char count per mode, server-side timestamp validation
+
+### Phase 4 — Order Tracking
+
+Replace the stubbed checkout with real order creation. Users can view order history.
+
+- [ ] API routes:
+  - `POST /api/orders` — create order from cart (requires auth). Validate products exist, calculate total server-side
+  - `GET /api/orders` — list user's orders (requires auth)
+  - `GET /api/orders/[id]` — order detail with items (requires auth, must own order)
+- [ ] Update `/store/cart` — replace "Coming soon" with checkout flow:
+  - If logged in → "Place Order" button → POST `/api/orders` → redirect to confirmation
+  - If not logged in → "Log in to checkout" prompt
+- [ ] New route: `/orders` — order history list
+- [ ] New route: `/orders/[id]` — order detail (items, status, date)
+- [ ] Order status is manual for now (update via SQLite CLI or future admin page)
+
+### Phase 5 — Deployment (Raspberry Pi 5)
+
+- [ ] Use external USB 3 SSD — not the SD card — for the OS or at minimum the SQLite DB
+- [ ] `pnpm build` on the Pi (or cross-build and rsync `build/` + `node_modules/`)
+- [ ] Systemd service for the Node process:
+  ```ini
+  [Unit]
+  Description=TypeArt
+  After=network.target
+
+  [Service]
+  WorkingDirectory=/opt/typeart
+  ExecStart=/usr/bin/node build/index.js
+  Restart=always
+  Environment=PORT=3000
+  Environment=DATABASE_PATH=/opt/typeart/data/typeart.db
+
+  [Install]
+  WantedBy=multi-user.target
+  ```
+- [ ] Nginx reverse proxy (port 80/443 → 3000) with Let's Encrypt for HTTPS
+- [ ] Cron job for daily SQLite backup: `sqlite3 data/typeart.db ".backup /backups/typeart-$(date +%F).db"`
+- [ ] UPS recommended for clean shutdown on power loss
+
 ## Changelog
 
 ### 2026-02-12

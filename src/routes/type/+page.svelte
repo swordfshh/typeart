@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { randomWords, randomQuote } from '$lib/typing/words.js';
+	import { authStore } from '$lib/stores/auth.svelte.js';
 
 	// --- Types ---
 	type Mode = 'time' | 'words' | 'quote';
@@ -30,6 +31,8 @@
 	let inputEl: HTMLInputElement | undefined = $state();
 	let wordsEl: HTMLDivElement | undefined = $state();
 	let displayStart = $state(0);
+
+	let scoreSubmitted: 'idle' | 'submitting' | 'done' | 'error' = $state('idle');
 
 	// --- Derived ---
 	const wpm = $derived.by(() => {
@@ -76,6 +79,7 @@
 		totalCorrectWords = 0;
 		displayStart = 0;
 		timeLeft = mode === 'time' ? timeOption : 0;
+		scoreSubmitted = 'idle';
 		generateWords();
 		requestAnimationFrame(() => inputEl?.focus());
 	}
@@ -93,6 +97,33 @@
 	function setWordsOption(w: number) {
 		wordsOption = w;
 		reset();
+	}
+
+	async function handleSubmitScore() {
+		if (scoreSubmitted !== 'idle') return;
+		scoreSubmitted = 'submitting';
+		try {
+			const res = await fetch('/api/scores', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					mode,
+					mode_param: mode === 'quote' ? null : String(mode === 'time' ? timeOption : wordsOption),
+					wpm,
+					raw_wpm: rawWpm,
+					accuracy,
+					char_count: totalCorrectChars,
+					elapsed_seconds: Math.round(elapsed * 10) / 10
+				})
+			});
+			if (res.ok) {
+				scoreSubmitted = 'done';
+			} else {
+				scoreSubmitted = 'error';
+			}
+		} catch {
+			scoreSubmitted = 'error';
+		}
 	}
 
 	function startTest() {
@@ -319,6 +350,21 @@
 				<span class="score-dot">·</span>
 				<span>{Math.round(elapsed)}s</span>
 			</div>
+			<div class="score-actions">
+				{#if authStore.loggedIn}
+					{#if scoreSubmitted === 'idle'}
+						<button class="submit-score" onclick={handleSubmitScore}>Submit Score</button>
+					{:else if scoreSubmitted === 'submitting'}
+						<span class="submit-status">Submitting...</span>
+					{:else if scoreSubmitted === 'done'}
+						<span class="submit-status done">Score saved</span>
+					{:else}
+						<span class="submit-status err">Failed to save</span>
+					{/if}
+				{:else}
+					<a href="/login" class="login-link">Log in to save scores</a>
+				{/if}
+			</div>
 			<span class="restart-hint">press <kbd>enter</kbd> to restart</span>
 		</div>
 	{:else}
@@ -533,6 +579,41 @@
 
 	.score-dot {
 		color: var(--base01);
+	}
+
+	.score-actions {
+		margin-top: 16px;
+	}
+
+	.submit-score {
+		padding: 8px 20px;
+		font-weight: 600;
+		font-size: 0.85rem;
+		color: var(--on-accent);
+		background: var(--blue);
+		border-radius: var(--radius-sm);
+		transition: filter 150ms ease;
+	}
+
+	.submit-score:hover {
+		filter: brightness(1.1);
+	}
+
+	.submit-status {
+		font-size: 0.85rem;
+		color: var(--base00);
+	}
+
+	.submit-status.done {
+		color: var(--green);
+	}
+
+	.submit-status.err {
+		color: var(--red);
+	}
+
+	.login-link {
+		font-size: 0.85rem;
 	}
 
 	.restart-hint {

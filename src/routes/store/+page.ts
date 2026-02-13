@@ -1,3 +1,5 @@
+export const prerender = true;
+
 import { parseProducts } from '$lib/store/parser.js';
 import type { PageLoad } from './$types';
 

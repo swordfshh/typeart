@@ -7,7 +7,8 @@ Keyboard-first e-commerce store with built-in live keymap editor and matrix test
 ```bash
 pnpm install
 pnpm dev        # http://localhost:5173
-pnpm build      # static site → build/
+pnpm build      # Node server → build/
+node build      # run production server
 pnpm preview    # preview production build
 pnpm check      # type-check
 ```
@@ -22,6 +23,9 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/store` | Product grid — keyboard kits with detail pages, variant selection, cart with localStorage |
 | `/configure` | Live keymap editor — connect keyboard, auto-detect definition, click-to-reassign keys, always-visible keycode picker with search/categories/LT-MT builder/"Any" key input |
 | `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
+| `/type` | Typing speed test — time/words/quote modes, score submission, leaderboards |
+| `/game` | Asteroid Run — typing-steered canvas game at 60fps |
+| `/login` | Login/register — tabbed form, session-based auth |
 
 ## Architecture
 
@@ -176,7 +180,13 @@ src/
 │   │   ├── keymap.svelte.ts         # keymapStore — 3D keymap, selection, writes
 │   │   ├── definition.svelte.ts     # definitionStore — parsed keys, layout options
 │   │   ├── cart.svelte.ts           # cartStore — localStorage-persisted cart
-│   │   └── theme.svelte.ts         # themeStore — theme switcher with localStorage
+│   │   ├── theme.svelte.ts         # themeStore — theme switcher with localStorage
+│   │   └── auth.svelte.ts          # authStore — user state, login/register/logout
+│   ├── server/
+│   │   ├── db.ts                    # SQLite (better-sqlite3, WAL mode, schema init)
+│   │   ├── auth.ts                  # register, login, sessions (Argon2id)
+│   │   ├── rate-limit.ts            # In-memory sliding window rate limiter
+│   │   └── scores.ts               # Score validation, submission, leaderboard queries
 │   └── utils/
 │       ├── bytes.ts                 # readUint16BE, writeUint16BE, toHex
 │       └── export.ts                # exportKeymap, parseImportedKeymap, downloadJson
@@ -191,13 +201,21 @@ src/
 │   ├── ImportExport.svelte          # Export/import keymap JSON
 │   ├── ProductCard.svelte           # Product card for store listing
 │   ├── VariantSelector.svelte       # Labeled <select> dropdown
-│   └── CartBadge.svelte             # Cart item count badge
+│   ├── CartBadge.svelte             # Cart item count badge
+│   └── Leaderboard.svelte          # Ranked score table (WPM, accuracy)
+├── hooks.server.ts                  # Session parsing, cleanup intervals
 └── routes/
-    ├── +layout.svelte               # Nav bar (rainbow logo) + main slot
-    ├── +layout.ts                   # prerender = true
+    ├── +layout.svelte               # Nav bar (rainbow logo, auth UI) + main slot
+    ├── +layout.server.ts            # Pass user to all pages
     ├── +page.svelte                 # Home (Store hero + Configure/Test cards)
     ├── configure/+page.svelte       # Keymap editor
     ├── test/+page.svelte            # Matrix tester
+    ├── type/+page.svelte            # Typing speed test + score submission
+    ├── game/+page.svelte            # Asteroid Run typing game
+    ├── login/+page.svelte           # Login/register tabbed form
+    ├── api/
+    │   ├── auth/{register,login,logout,me}/+server.ts  # Auth API routes
+    │   └── scores/{+server.ts,me/+server.ts}           # Score API routes
     └── store/
         ├── +page.ts                 # Load: fetch & parse products.txt
         ├── +page.svelte             # Product listing grid
@@ -212,7 +230,8 @@ static/
     ├── typeart65/definition.json    # TypeArt 65 placeholder (5×15)
     ├── space65/definition.json      # Graystudio Space65 R1 (0x4753:0x3000)
     ├── space65r3/definition.json    # Graystudio Space65 R3 (0x4753:0x3003)
-    └── lux40v2/definition.json     # Lux40v2 (0x4C4D:0x0001, 4×14, 1 encoder)
+    ├── lux40v2/definition.json     # Lux40v2 (0x4C4D:0x0001, 4×14, 1 encoder)
+    └── lux36/definition.json       # Lux36 (0x4C4D:0x0002, 4×11, QAZ-style 36-key)
 ```
 
 ## Adding a Keyboard Definition
@@ -244,13 +263,13 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 
 | What | Version | Notes |
 |---|---|---|
-| SvelteKit | 2.x | Compiled framework, adapter-static for prerendered output |
+| SvelteKit | 2.x | adapter-node for server + prerendered static pages |
 | Svelte | 5.x | Runes ($state, $derived, $effect, $props) |
 | TypeScript | 5.x | Type safety for protocol byte manipulation |
 | Vite | 7.x | Dev server + builds |
+| better-sqlite3 | 11.x | SQLite with WAL mode for user accounts + scores |
+| @node-rs/argon2 | 2.x | Argon2id password hashing |
 | pnpm | 10.x | Package manager |
-
-Zero runtime dependencies — everything compiled away at build time.
 
 ## Known Limitations
 
@@ -262,135 +281,53 @@ Zero runtime dependencies — everything compiled away at build time.
 - **Single device** — one keyboard at a time
 - **Store checkout stubbed** — cart works, checkout says "Coming soon"
 
-## Roadmap: Backend Services
+## Roadmap
 
-Transition from static site to `adapter-node` with SQLite backend. Enables typing leaderboards, user accounts, and order tracking. Target deployment: Raspberry Pi 5 with SSD.
+### Done
 
-### Phase 1 — Adapter & Database
+- [x] **Phase 1 — Adapter & Database**: Swapped `adapter-static` → `adapter-node`, added `better-sqlite3` with WAL mode, schema for users/sessions/typing_scores, per-route prerender flags for static pages
+- [x] **Phase 2 — Auth**: Argon2id password hashing, session-based cookies (30-day), register/login/logout/me API routes, rate limiting, `hooks.server.ts` middleware, client-side `authStore`, login/register page, navbar auth UI
+- [x] **Phase 3 — Typing Leaderboards**: Score submission API (anti-cheat: WPM cap 300, min chars, elapsed time), public leaderboard API, personal bests/recent scores, "Submit Score" button on typing test finish screen, `Leaderboard.svelte` component
 
-Switch from `adapter-static` to `adapter-node` so SvelteKit can serve API routes.
+### TODO
 
-- [ ] `pnpm remove @sveltejs/adapter-static && pnpm add @sveltejs/adapter-node`
-- [ ] Update `svelte.config.js` — swap adapter import
-- [ ] Add `better-sqlite3` (+ `@types/better-sqlite3`) — single-file DB, no external process
-- [ ] Create `src/lib/server/db.ts` — open/init DB, export query helpers
-- [ ] Schema migration on startup — create tables if not exist
-- [ ] Add `data/` to `.gitignore` for the SQLite file
-
-**Schema (initial):**
-
-```sql
-CREATE TABLE users (
-    id          INTEGER PRIMARY KEY,
-    username    TEXT UNIQUE NOT NULL,
-    email       TEXT UNIQUE NOT NULL,
-    password    TEXT NOT NULL,           -- bcrypt hash
-    created_at  TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE typing_scores (
-    id          INTEGER PRIMARY KEY,
-    user_id     INTEGER REFERENCES users(id),
-    mode        TEXT NOT NULL,           -- 'time:15', 'time:30', 'words:25', 'quote', etc.
-    wpm         REAL NOT NULL,
-    accuracy    REAL NOT NULL,           -- 0–100
-    raw_wpm     REAL,
-    char_count  INTEGER,
-    created_at  TEXT DEFAULT (datetime('now'))
-);
-CREATE INDEX idx_scores_mode_wpm ON typing_scores(mode, wpm DESC);
-CREATE INDEX idx_scores_user     ON typing_scores(user_id);
-
-CREATE TABLE orders (
-    id          INTEGER PRIMARY KEY,
-    user_id     INTEGER REFERENCES users(id),
-    status      TEXT DEFAULT 'pending',  -- pending, confirmed, shipped, delivered
-    total       INTEGER NOT NULL,        -- cents
-    created_at  TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE order_items (
-    id          INTEGER PRIMARY KEY,
-    order_id    INTEGER REFERENCES orders(id),
-    product_slug TEXT NOT NULL,
-    variant     TEXT,
-    quantity    INTEGER NOT NULL,
-    unit_price  INTEGER NOT NULL         -- cents
-);
-```
-
-### Phase 2 — Auth
-
-Cookie-based sessions with bcrypt password hashing. No external auth provider.
-
-- [ ] Add `bcrypt` (or `@node-rs/argon2`) for password hashing
-- [ ] Create `src/lib/server/auth.ts` — `register()`, `login()`, `getSession()`, `logout()`
-- [ ] Session strategy: signed HTTP-only cookie → session ID → `sessions` table (or just a signed JWT with user ID, no session table needed for this scale)
-- [ ] API routes:
-  - `POST /api/auth/register` — username, email, password → hash, insert, set cookie
-  - `POST /api/auth/login` — email, password → verify, set cookie
-  - `POST /api/auth/logout` — clear cookie
-  - `GET /api/auth/me` — return current user from cookie (or 401)
-- [ ] `src/lib/stores/auth.svelte.ts` — client-side user state, call `/api/auth/me` on load
-- [ ] SvelteKit `hooks.server.ts` — parse session cookie, attach `event.locals.user`
-- [ ] Rate limit login/register (simple in-memory counter, no Redis needed)
-
-### Phase 3 — Typing Leaderboards
-
-Submit scores from the typing test, display global and per-mode leaderboards.
-
-- [ ] API routes:
-  - `POST /api/scores` — submit score (requires auth). Validate mode, wpm > 0, accuracy 0–100
-  - `GET /api/scores?mode=time:30&limit=50` — top scores for mode (public)
-  - `GET /api/scores/me` — current user's personal bests + history (requires auth)
-- [ ] Update `/type` score screen:
-  - If logged in, show "Submit Score" button after test completes
-  - On submit, POST to `/api/scores`, show confirmation or error
-  - If not logged in, show "Log in to save your score" link
-- [ ] New component: `Leaderboard.svelte` — table with rank, username, WPM, accuracy, date
-- [ ] Add leaderboard tab/section to `/type` — toggle between test and leaderboard view
-- [ ] Anti-cheat (basic): reject WPM > 300, require minimum char count per mode, server-side timestamp validation
-
-### Phase 4 — Order Tracking
+#### Phase 4 — Order Tracking
 
 Replace the stubbed checkout with real order creation. Users can view order history.
 
-- [ ] API routes:
-  - `POST /api/orders` — create order from cart (requires auth). Validate products exist, calculate total server-side
-  - `GET /api/orders` — list user's orders (requires auth)
-  - `GET /api/orders/[id]` — order detail with items (requires auth, must own order)
-- [ ] Update `/store/cart` — replace "Coming soon" with checkout flow:
-  - If logged in → "Place Order" button → POST `/api/orders` → redirect to confirmation
-  - If not logged in → "Log in to checkout" prompt
-- [ ] New route: `/orders` — order history list
-- [ ] New route: `/orders/[id]` — order detail (items, status, date)
-- [ ] Order status is manual for now (update via SQLite CLI or future admin page)
+- [ ] API routes: `POST /api/orders`, `GET /api/orders`, `GET /api/orders/[id]`
+- [ ] Update `/store/cart` — replace "Coming soon" with checkout flow
+- [ ] New routes: `/orders` (history), `/orders/[id]` (detail)
 
-### Phase 5 — Deployment (Raspberry Pi 5)
+#### Phase 5 — Deployment (Raspberry Pi 5)
 
-- [ ] Use external USB 3 SSD — not the SD card — for the OS or at minimum the SQLite DB
+- [ ] External USB 3 SSD for OS or at minimum the SQLite DB
 - [ ] `pnpm build` on the Pi (or cross-build and rsync `build/` + `node_modules/`)
-- [ ] Systemd service for the Node process:
-  ```ini
-  [Unit]
-  Description=TypeArt
-  After=network.target
-
-  [Service]
-  WorkingDirectory=/opt/typeart
-  ExecStart=/usr/bin/node build/index.js
-  Restart=always
-  Environment=PORT=3000
-  Environment=DATABASE_PATH=/opt/typeart/data/typeart.db
-
-  [Install]
-  WantedBy=multi-user.target
-  ```
+- [ ] Systemd service for the Node process
 - [ ] Nginx reverse proxy (port 80/443 → 3000) with Let's Encrypt for HTTPS
-- [ ] Cron job for daily SQLite backup: `sqlite3 data/typeart.db ".backup /backups/typeart-$(date +%F).db"`
+- [ ] Cron job for daily SQLite backup
 - [ ] UPS recommended for clean shutdown on power loss
 
 ## Changelog
+
+### 2026-02-13
+
+**Lux36 keyboard reverse engineering + firmware**
+- Reverse engineered `luxqaz_default.bin` (STM32F072, VID 0x4C4D, PID 0x0002): extracted USB descriptors, 4-layer keymap (4×11 matrix), and GPIO pin assignments from compiled binary
+- Created VIA v3 definition at `static/keyboards/lux36/definition.json` with QAZ-style staggered layout
+- Compiled VIA-compatible QMK firmware (`qmk_firmware/keyboards/lux36/`) with corrected pin mapping extracted from original binary (cols: B14–A2, rows: A10–B15)
+
+**Backend: auth, database, leaderboards**
+- Swapped `adapter-static` → `adapter-node` for server-side routes; static pages retain per-route `prerender = true`
+- Added SQLite database (`better-sqlite3`, WAL mode) with users, sessions, typing_scores tables
+- Auth system: Argon2id hashing (`@node-rs/argon2`), 30-day session cookies, register/login/logout/me API routes, in-memory rate limiting
+- Server hooks (`hooks.server.ts`): session parsing middleware, hourly cleanup of expired sessions + rate limits
+- Client-side `authStore` (class-based `$state()`) with login/register/logout methods
+- Login/register page (`/login`) with tabbed form, server-side redirect if already logged in
+- Navbar auth UI: shows username + Log out when logged in, Log in link otherwise
+- Score submission: POST `/api/scores` (auth required, rate limited, anti-cheat validation), GET leaderboard (public), personal bests/recent scores
+- "Submit Score" button on typing test finish screen (or "Log in to save scores" link)
+- `Leaderboard.svelte` component: ranked table with user, WPM, accuracy
 
 ### 2026-02-12
 

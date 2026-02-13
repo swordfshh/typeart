@@ -22,5 +22,11 @@
 		"path": "lux40v2",
 		"vendorId": "0x4C4D",
 		"productId": "0x0001"
+	},
+	{
+		"name": "Lux36",
+		"path": "lux36",
+		"vendorId": "0x4C4D",
+		"productId": "0x0002"
 	}
 ]

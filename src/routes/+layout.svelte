@@ -3,9 +3,10 @@
 	import CartBadge from '../components/CartBadge.svelte';
 	import { cartStore } from '$lib/stores/cart.svelte.js';
 	import { themeStore } from '$lib/stores/theme.svelte.js';
+	import { authStore } from '$lib/stores/auth.svelte.js';
 	import { onMount } from 'svelte';
 
-	let { children } = $props();
+	let { data, children } = $props();
 
 	const themeLabels: Record<string, string> = {
 		'retro-beige': 'Retro Beige',
@@ -14,9 +15,16 @@
 	};
 	const themeLabel = $derived(themeLabels[themeStore.current]);
 
-	onMount(() => {
+	$effect(() => {
+		authStore.init(data.user);
+	});
+
+	onMount(async () => {
 		themeStore.hydrate();
 		cartStore.hydrate();
+		if (!authStore.loggedIn) {
+			await authStore.fetchUser();
+		}
 	});
 </script>
 
@@ -31,6 +39,12 @@
 			<a href="/game">Game</a>
 			<a href="/store">Store</a>
 			<a href="/store/cart" class="cart-link">Cart<CartBadge count={cartStore.totalItems} /></a>
+			{#if authStore.loggedIn}
+				<span class="auth-user">{authStore.user?.username}</span>
+				<button class="auth-btn" onclick={() => authStore.logout()}>Log out</button>
+			{:else}
+				<a href="/login" class="auth-btn">Log in</a>
+			{/if}
 		</div>
 	</nav>
 
@@ -136,5 +150,26 @@
 	.content {
 		flex: 1;
 		padding: 24px;
+	}
+
+	.auth-user {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--base1);
+	}
+
+	.auth-btn {
+		font-size: 0.8rem;
+		font-weight: 600;
+		padding: 4px 12px;
+		border-radius: var(--radius-sm);
+		background: var(--base01);
+		color: var(--base0);
+		transition: filter 150ms ease;
+	}
+
+	.auth-btn:hover {
+		filter: brightness(1.1);
+		text-decoration: none;
 	}
 </style>

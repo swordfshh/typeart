@@ -1,6 +1,7 @@
 import { db } from './db.js';
 import { hash, verify } from '@node-rs/argon2';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
+import { sendPasswordResetEmail } from './email.js';
 
 export interface User {
 	id: string;
@@ -141,4 +142,71 @@ function createSession(userId: string): string {
 		expiresAt
 	);
 	return sessionId;
+}
+
+// --- Password reset ---
+
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
+function hashToken(token: string): string {
+	return createHash('sha256').update(token).digest('hex');
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+	email = email.trim().toLowerCase();
+
+	const user = db
+		.prepare('SELECT id, email FROM users WHERE email = ?')
+		.get(email) as { id: string; email: string } | undefined;
+
+	// Always return silently to prevent email enumeration
+	if (!user) return;
+
+	// One active token per user
+	db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(user.id);
+
+	const token = randomBytes(32).toString('hex');
+	const tokenHash = hashToken(token);
+	const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS).toISOString();
+
+	db.prepare(
+		'INSERT INTO password_reset_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)'
+	).run(tokenHash, user.id, expiresAt);
+
+	await sendPasswordResetEmail(user.email, token);
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+	if (newPassword.length < 8) {
+		throw new AuthError('Password must be at least 8 characters');
+	}
+
+	const tokenHash = hashToken(token);
+
+	const row = db
+		.prepare(
+			`SELECT user_id FROM password_reset_tokens
+			 WHERE token_hash = ? AND expires_at > datetime('now')`
+		)
+		.get(tokenHash) as { user_id: string } | undefined;
+
+	if (!row) {
+		throw new AuthError('Invalid or expired reset link');
+	}
+
+	const passwordHash = await hash(newPassword, {
+		memoryCost: 19456,
+		timeCost: 2,
+		parallelism: 1
+	});
+
+	db.transaction(() => {
+		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, row.user_id);
+		db.prepare('DELETE FROM password_reset_tokens WHERE token_hash = ?').run(tokenHash);
+		db.prepare('DELETE FROM sessions WHERE user_id = ?').run(row.user_id);
+	})();
+}
+
+export function cleanExpiredResetTokens(): void {
+	db.prepare("DELETE FROM password_reset_tokens WHERE expires_at < datetime('now')").run();
 }

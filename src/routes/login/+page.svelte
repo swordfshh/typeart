@@ -66,6 +66,7 @@
 					Password
 					<input type="password" bind:value={password} required autocomplete="current-password" />
 				</label>
+				<a href="/forgot-password" class="forgot-link">Forgot password?</a>
 				<button type="submit" class="submit" disabled={loading}>
 					{loading ? 'Logging in...' : 'Log In'}
 				</button>
@@ -169,6 +170,13 @@
 
 	input:focus {
 		border-color: var(--blue);
+	}
+
+	.forgot-link {
+		font-size: 0.8rem;
+		color: var(--blue);
+		text-align: right;
+		margin-top: -8px;
 	}
 
 	.submit {

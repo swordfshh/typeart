@@ -1,9 +1,10 @@
 import type { Handle } from '@sveltejs/kit';
-import { getSession, cleanExpiredSessions, SESSION_COOKIE } from '$lib/server/auth.js';
+import { getSession, cleanExpiredSessions, cleanExpiredResetTokens, SESSION_COOKIE } from '$lib/server/auth.js';
 import { cleanupRateLimits } from '$lib/server/rate-limit.js';
 
 setInterval(() => {
 	cleanExpiredSessions();
+	cleanExpiredResetTokens();
 	cleanupRateLimits();
 }, 60 * 60 * 1000);
 

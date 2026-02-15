@@ -1,0 +1,283 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { authStore } from '$lib/stores/auth.svelte.js';
+
+	interface OrderItem {
+		id: string;
+		product_slug: string;
+		product_name: string;
+		base_price_cents: number;
+		color: string;
+		stabilizer_name: string;
+		stabilizer_price_cents: number;
+		wrist_rest: number;
+		wrist_rest_price_cents: number;
+		quantity: number;
+	}
+
+	interface Order {
+		id: string;
+		status: string;
+		total_cents: number;
+		created_at: string;
+		items: OrderItem[];
+	}
+
+	let order: Order | null = $state(null);
+	let loading = $state(true);
+	let error = $state('');
+
+	onMount(async () => {
+		if (!authStore.loggedIn) {
+			goto('/login');
+			return;
+		}
+
+		try {
+			const res = await fetch(`/api/orders/${page.params.id}`);
+			const data = await res.json();
+			if (!res.ok) {
+				error = data.error || 'Failed to load order';
+				return;
+			}
+			order = data.order;
+		} catch {
+			error = 'Network error';
+		} finally {
+			loading = false;
+		}
+	});
+
+	function formatDate(iso: string): string {
+		return new Date(iso + 'Z').toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		});
+	}
+
+	function itemLineCents(item: OrderItem): number {
+		const unit = item.base_price_cents + item.stabilizer_price_cents +
+			(item.wrist_rest ? item.wrist_rest_price_cents : 0);
+		return unit * item.quantity;
+	}
+
+	function cents(c: number): string {
+		return (c / 100).toFixed(2);
+	}
+
+	function statusLabel(status: string): string {
+		return status.charAt(0).toUpperCase() + status.slice(1);
+	}
+
+	const colorMap: Record<string, string> = {
+		'Slate Black': '#2d3436',
+		'Arctic White': '#dfe6e9',
+		'Navy Blue': '#268bd2',
+		'Forest Green': '#859900'
+	};
+</script>
+
+<div class="order-detail">
+	{#if loading}
+		<p class="loading">Loading order...</p>
+	{:else if error}
+		<p class="error">{error}</p>
+	{:else if order}
+		<div class="order-header">
+			<div>
+				<h1>Order</h1>
+				<span class="order-id">{order.id.slice(0, 8)}</span>
+			</div>
+			<span class="order-status" data-status={order.status}>{statusLabel(order.status)}</span>
+		</div>
+		<p class="order-date">{formatDate(order.created_at)}</p>
+
+		<div class="items-list">
+			{#each order.items as item (item.id)}
+				<div class="item-row">
+					<div class="item-color" style:background-color={colorMap[item.color] || 'var(--base01)'}></div>
+					<div class="item-info">
+						<span class="item-name">{item.product_name}</span>
+						<span class="item-variants">
+							{item.color} &middot; {item.stabilizer_name}
+							{#if item.wrist_rest} &middot; Wrist rest{/if}
+						</span>
+					</div>
+					<span class="item-qty">&times;{item.quantity}</span>
+					<span class="item-total">${cents(itemLineCents(item))}</span>
+				</div>
+			{/each}
+		</div>
+
+		<div class="order-footer">
+			<span>Total</span>
+			<span class="total-value">${cents(order.total_cents)}</span>
+		</div>
+
+		<a href="/orders" class="back-link">&larr; All orders</a>
+	{/if}
+</div>
+
+<style>
+	.order-detail {
+		max-width: 720px;
+		margin: 0 auto;
+		padding-top: 48px;
+	}
+
+	.loading, .error {
+		font-size: 0.9rem;
+		color: var(--base00);
+		text-align: center;
+		padding: 48px 0;
+	}
+
+	.error {
+		color: var(--red);
+	}
+
+	.order-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 4px;
+	}
+
+	.order-header h1 {
+		font-size: 2rem;
+		font-weight: 700;
+		color: var(--base1);
+		letter-spacing: -0.03em;
+		display: inline;
+	}
+
+	.order-id {
+		font-size: 1rem;
+		color: var(--base00);
+		font-family: 'Courier Prime', monospace;
+		margin-left: 8px;
+	}
+
+	.order-status {
+		font-size: 0.8rem;
+		font-weight: 600;
+		padding: 4px 12px;
+		border-radius: var(--radius-sm);
+		background-color: var(--base03);
+		color: var(--base0);
+	}
+
+	.order-status[data-status="pending"] {
+		background-color: color-mix(in srgb, var(--yellow) 20%, transparent);
+		color: var(--yellow);
+	}
+
+	.order-status[data-status="confirmed"] {
+		background-color: color-mix(in srgb, var(--green) 20%, transparent);
+		color: var(--green);
+	}
+
+	.order-status[data-status="shipped"] {
+		background-color: color-mix(in srgb, var(--blue) 20%, transparent);
+		color: var(--blue);
+	}
+
+	.order-date {
+		font-size: 0.85rem;
+		color: var(--base00);
+		margin-bottom: 32px;
+	}
+
+	.items-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		background-color: var(--base01);
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+	}
+
+	.item-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 16px;
+		background-color: var(--base02);
+	}
+
+	.item-color {
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius-sm);
+		flex-shrink: 0;
+	}
+
+	.item-info {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.item-name {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--base1);
+	}
+
+	.item-variants {
+		font-size: 0.75rem;
+		color: var(--base00);
+		margin-top: 2px;
+	}
+
+	.item-qty {
+		font-size: 0.85rem;
+		color: var(--base00);
+		min-width: 30px;
+		text-align: right;
+	}
+
+	.item-total {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--green);
+		min-width: 70px;
+		text-align: right;
+	}
+
+	.order-footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 16px 0;
+		margin-top: 24px;
+		border-top: 1px solid var(--base01);
+		font-size: 1.125rem;
+		font-weight: 600;
+		color: var(--base1);
+	}
+
+	.total-value {
+		color: var(--green);
+		font-size: 1.25rem;
+	}
+
+	.back-link {
+		display: inline-block;
+		margin-top: 24px;
+		font-size: 0.875rem;
+		color: var(--blue);
+		transition: color 100ms ease;
+	}
+
+	.back-link:hover {
+		color: var(--base1);
+		text-decoration: none;
+	}
+</style>

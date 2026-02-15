@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { cartStore } from '$lib/stores/cart.svelte.js';
+	import { authStore } from '$lib/stores/auth.svelte.js';
+
+	let checkingOut = $state(false);
+	let error = $state('');
 
 	onMount(() => {
 		cartStore.hydrate();
@@ -8,6 +13,37 @@
 
 	function itemTotal(item: (typeof cartStore.items)[0]): number {
 		return (item.basePrice + item.stabilizer.price + (item.wristRest ? item.wristRestPrice : 0)) * item.quantity;
+	}
+
+	async function checkout() {
+		if (!authStore.loggedIn) {
+			goto('/login');
+			return;
+		}
+
+		checkingOut = true;
+		error = '';
+
+		try {
+			const res = await fetch('/api/orders', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ items: cartStore.items })
+			});
+			const data = await res.json();
+
+			if (!res.ok) {
+				error = data.error || 'Failed to place order';
+				return;
+			}
+
+			cartStore.clear();
+			goto(`/orders/${data.id}`);
+		} catch {
+			error = 'Network error. Please try again.';
+		} finally {
+			checkingOut = false;
+		}
 	}
 </script>
 
@@ -55,9 +91,14 @@
 				<span>Total</span>
 				<span class="total-value">${cartStore.totalPrice.toFixed(2)}</span>
 			</div>
+			{#if error}
+				<p class="checkout-error">{error}</p>
+			{/if}
 			<div class="cart-actions">
 				<a href="/store" class="continue-link">Continue Shopping</a>
-				<button class="checkout-btn" disabled>Checkout — Coming soon</button>
+				<button class="checkout-btn" disabled={checkingOut} onclick={checkout}>
+					{checkingOut ? 'Placing order...' : 'Place Order'}
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -231,15 +272,31 @@
 		margin-top: 16px;
 	}
 
+	.checkout-error {
+		color: var(--red);
+		font-size: 0.85rem;
+		margin-top: 8px;
+	}
+
 	.checkout-btn {
 		padding: 10px 24px;
-		background-color: var(--base01);
-		color: var(--base00);
+		background-color: var(--green);
+		color: var(--base02);
 		border: none;
 		border-radius: var(--radius-md);
 		font-size: 0.875rem;
 		font-weight: 600;
 		font-family: inherit;
+		cursor: pointer;
+		transition: filter 100ms ease;
+	}
+
+	.checkout-btn:hover:not(:disabled) {
+		filter: brightness(1.1);
+	}
+
+	.checkout-btn:disabled {
+		opacity: 0.6;
 		cursor: not-allowed;
 	}
 </style>

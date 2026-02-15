@@ -49,6 +49,32 @@ function createDb(): Database.Database {
 		CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 		CREATE INDEX IF NOT EXISTS idx_scores_user ON typing_scores(user_id);
 		CREATE INDEX IF NOT EXISTS idx_scores_mode_wpm ON typing_scores(mode, wpm DESC);
+
+		CREATE TABLE IF NOT EXISTS orders (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			status TEXT NOT NULL DEFAULT 'pending',
+			total_cents INTEGER NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		CREATE TABLE IF NOT EXISTS order_items (
+			id TEXT PRIMARY KEY,
+			order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+			product_slug TEXT NOT NULL,
+			product_name TEXT NOT NULL,
+			base_price_cents INTEGER NOT NULL,
+			color TEXT NOT NULL,
+			stabilizer_name TEXT NOT NULL,
+			stabilizer_price_cents INTEGER NOT NULL,
+			wrist_rest INTEGER NOT NULL DEFAULT 0,
+			wrist_rest_price_cents INTEGER NOT NULL DEFAULT 0,
+			quantity INTEGER NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+		CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 	`);
 
 	return db;

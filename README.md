@@ -25,6 +25,8 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
 | `/type` | Typing speed test — time/words/quote modes, score submission, leaderboards |
 | `/game` | Asteroid Run — typing-steered canvas game at 60fps |
+| `/orders` | Order history — list of placed orders with status, links to detail |
+| `/orders/[id]` | Order detail — itemized breakdown with color, variants, totals |
 | `/login` | Login/register — tabbed form, session-based auth |
 
 ## Architecture
@@ -186,7 +188,8 @@ src/
 │   │   ├── db.ts                    # SQLite (better-sqlite3, WAL mode, schema init)
 │   │   ├── auth.ts                  # register, login, sessions (Argon2id)
 │   │   ├── rate-limit.ts            # In-memory sliding window rate limiter
-│   │   └── scores.ts               # Score validation, submission, leaderboard queries
+│   │   ├── scores.ts               # Score validation, submission, leaderboard queries
+│   │   └── orders.ts               # Order creation (transactional), queries by user
 │   └── utils/
 │       ├── bytes.ts                 # readUint16BE, writeUint16BE, toHex
 │       └── export.ts                # exportKeymap, parseImportedKeymap, downloadJson
@@ -213,9 +216,13 @@ src/
     ├── type/+page.svelte            # Typing speed test + score submission
     ├── game/+page.svelte            # Asteroid Run typing game
     ├── login/+page.svelte           # Login/register tabbed form
+    ├── orders/
+    │   ├── +page.svelte             # Order history list
+    │   └── [id]/+page.svelte        # Order detail with itemized breakdown
     ├── api/
     │   ├── auth/{register,login,logout,me}/+server.ts  # Auth API routes
-    │   └── scores/{+server.ts,me/+server.ts}           # Score API routes
+    │   ├── scores/{+server.ts,me/+server.ts}           # Score API routes
+    │   └── orders/{+server.ts,[id]/+server.ts}         # Order API routes
     └── store/
         ├── +page.ts                 # Load: fetch & parse products.txt
         ├── +page.svelte             # Product listing grid
@@ -279,7 +286,7 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 - **No lighting panel** — RGB/backlight keycodes assignable but no dedicated config UI
 - **Import writes key-by-key** — could use `DynamicKeymapSetBuffer` for bulk writes
 - **Single device** — one keyboard at a time
-- **Store checkout stubbed** — cart works, checkout says "Coming soon"
+- **No payment processing** — orders are recorded but checkout has no payment gateway integration
 
 ## Roadmap
 
@@ -288,16 +295,9 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 - [x] **Phase 1 — Adapter & Database**: Swapped `adapter-static` → `adapter-node`, added `better-sqlite3` with WAL mode, schema for users/sessions/typing_scores, per-route prerender flags for static pages
 - [x] **Phase 2 — Auth**: Argon2id password hashing, session-based cookies (30-day), register/login/logout/me API routes, rate limiting, `hooks.server.ts` middleware, client-side `authStore`, login/register page, navbar auth UI
 - [x] **Phase 3 — Typing Leaderboards**: Score submission API (anti-cheat: WPM cap 300, min chars, elapsed time), public leaderboard API, personal bests/recent scores, "Submit Score" button on typing test finish screen, `Leaderboard.svelte` component
+- [x] **Phase 4 — Order Tracking**: Orders + order_items DB tables (prices in integer cents), transactional order creation, `POST /api/orders` (auth + rate limited), `GET /api/orders` + `GET /api/orders/[id]`, cart checkout flow with auth redirect, `/orders` history page, `/orders/[id]` detail page, "Orders" nav link
 
 ### TODO
-
-#### Phase 4 — Order Tracking
-
-Replace the stubbed checkout with real order creation. Users can view order history.
-
-- [ ] API routes: `POST /api/orders`, `GET /api/orders`, `GET /api/orders/[id]`
-- [ ] Update `/store/cart` — replace "Coming soon" with checkout flow
-- [ ] New routes: `/orders` (history), `/orders/[id]` (detail)
 
 #### Phase 5 — Deployment (Raspberry Pi 5)
 
@@ -309,6 +309,17 @@ Replace the stubbed checkout with real order creation. Users can view order hist
 - [ ] UPS recommended for clean shutdown on power loss
 
 ## Changelog
+
+### 2026-02-15
+
+**Order tracking (Phase 4)**
+- Added `orders` and `order_items` database tables (prices stored as integer cents to avoid floating point)
+- Server module (`src/lib/server/orders.ts`): transactional order creation, user-scoped queries with ownership checks
+- API routes: `POST /api/orders` (auth required, rate limited 10/15min), `GET /api/orders` (user's orders), `GET /api/orders/[id]` (detail with items)
+- Cart checkout: replaced "Coming soon" stub with active "Place Order" button — redirects to `/login` if not authenticated, clears cart on success, redirects to order detail
+- Order history page (`/orders`): date, status badge, item count, total; links to detail
+- Order detail page (`/orders/[id]`): itemized list with color swatches, variants, quantities, line totals
+- Navbar: "Orders" link visible when logged in
 
 ### 2026-02-13
 

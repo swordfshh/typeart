@@ -38,6 +38,9 @@
 			<a href="/type">Type</a>
 			<a href="/game">Game</a>
 			<a href="/store">Store</a>
+			{#if authStore.loggedIn}
+				<a href="/orders">Orders</a>
+			{/if}
 			<a href="/store/cart" class="cart-link">Cart<CartBadge count={cartStore.totalItems} /></a>
 			{#if authStore.loggedIn}
 				<span class="auth-user">{authStore.user?.username}</span>

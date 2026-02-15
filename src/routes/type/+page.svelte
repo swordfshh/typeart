@@ -368,18 +368,20 @@
 		{/if}
 	</div>
 
-	<!-- Live stats -->
-	<div class="live-stats">
-		{#if mode === 'time'}
-			<span class="stat-value timer">{Math.ceil(finished ? 0 : timeLeft)}</span>
-		{:else}
-			<span class="stat-label">{currentWordIndex}/{words.length}</span>
-		{/if}
-		{#if started}
-			<span class="stat-label">{wpm} wpm</span>
-			<span class="stat-label">{accuracy}%</span>
-		{/if}
-	</div>
+	<!-- Live stats (hidden when results or leaderboard shown) -->
+	{#if !finished && !showLeaderboard}
+		<div class="live-stats">
+			{#if mode === 'time'}
+				<span class="stat-value timer">{Math.ceil(timeLeft)}</span>
+			{:else}
+				<span class="stat-label">{currentWordIndex}/{words.length}</span>
+			{/if}
+			{#if started}
+				<span class="stat-label">{wpm} wpm</span>
+				<span class="stat-label">{accuracy}%</span>
+			{/if}
+		</div>
+	{/if}
 
 	{#if showLeaderboard}
 		<div class="leaderboard-section">

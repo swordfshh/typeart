@@ -23,7 +23,7 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/store` | Product grid — keyboard kits with detail pages, variant selection, cart with localStorage |
 | `/configure` | Live keymap editor — connect keyboard, auto-detect definition, click-to-reassign keys, always-visible keycode picker with search/categories/LT-MT builder/"Any" key input |
 | `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
-| `/type` | Typing speed test — time/words/quote modes, score submission, leaderboard on finish |
+| `/type` | Typing speed test — time/words/quote modes, leaderboard toggle in settings bar, score submission + leaderboard on finish |
 | `/orders` | Order history — list of placed orders with status, links to detail |
 | `/orders/[id]` | Order detail — itemized breakdown with color, variants, totals |
 | `/login` | Login/register — tabbed form, session-based auth |
@@ -148,6 +148,8 @@ Logo colors, card hover gradients, and all UI tokens adapt per theme.
 
 **Logo**: "TypeArt" in Courier Prime (italic, weight 560), each letter a muted rainbow color: T(#c4443a) y(#c86a2a) p(#b8941e) e(#4a8c3f) A(#2e7bab) r(#5b4a9e) t(#8b3a8b). Home page cards get a rainbow gradient border on hover via `background: linear-gradient(...) border-box` with rounded corners.
 
+**Favicon**: SVG tab icon — "TA" in Courier New italic with stroke-width 1.33. T in Miami Nights cyan (`#0AD2D3`), A in hot pink (`#FF2E97`). Served from `static/favicon.svg`.
+
 **Font loading**: Courier Prime loaded from Google Fonts in `app.html` (ital + wght variants).
 
 ## File Map
@@ -155,7 +157,7 @@ Logo colors, card hover gradients, and all UI tokens adapt per theme.
 ```
 src/
 ├── app.css                          # Design tokens (vintage Macintosh beige), global reset
-├── app.html                         # HTML shell + Google Fonts (Courier Prime)
+├── app.html                         # HTML shell + favicon + Google Fonts (Courier Prime)
 ├── app.d.ts                         # SvelteKit type declarations
 ├── lib/
 │   ├── transport/
@@ -231,6 +233,7 @@ scripts/
 └── backup-db.sh                     # Daily SQLite backup (WAL-safe, 7-day retention)
 
 static/
+├── favicon.svg                      # Browser tab icon (TA in Miami Nights cyan/pink)
 ├── products.txt                     # Product catalog (line-based format)
 ├── 99-typeart.rules                 # Linux udev rules for HID access
 ├── firmware/
@@ -304,6 +307,14 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 ## Changelog
 
 ### 2026-02-15
+
+**Favicon**
+- Added SVG browser tab icon: "TA" in Courier New italic, stroke-width 1.33, T in cyan (`#0AD2D3`), A in pink (`#FF2E97`) from Miami Nights theme
+- Referenced in `app.html` via `<link rel="icon" type="image/svg+xml">`
+
+**Typing test**
+- Added leaderboard toggle button to the mode settings bar (`time words quote | leaderboard | 15 30 60`)
+- Clicking shows current mode's top 10 leaderboard inline; dismissed on mode change, option change, or reset
 
 **Deployment (Phase 5)**
 - Deployed to Raspberry Pi 5 (NVMe SSD, 108GB free)

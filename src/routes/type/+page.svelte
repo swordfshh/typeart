@@ -42,6 +42,7 @@
 	let scoreSubmitted: 'idle' | 'submitting' | 'done' | 'error' = $state('idle');
 	let leaderboardScores: Score[] = $state([]);
 	let leaderboardLoading = $state(false);
+	let showLeaderboard = $state(false);
 
 	// --- Derived ---
 	const wpm = $derived.by(() => {
@@ -78,6 +79,7 @@
 		timer = null;
 		started = false;
 		finished = false;
+		showLeaderboard = false;
 		startTime = 0;
 		elapsed = 0;
 		currentWordIndex = 0;
@@ -97,17 +99,27 @@
 
 	function setMode(m: Mode) {
 		mode = m;
+		showLeaderboard = false;
 		reset();
 	}
 
 	function setTimeOption(t: number) {
 		timeOption = t;
+		showLeaderboard = false;
 		reset();
 	}
 
 	function setWordsOption(w: number) {
 		wordsOption = w;
+		showLeaderboard = false;
 		reset();
+	}
+
+	function toggleLeaderboard() {
+		showLeaderboard = !showLeaderboard;
+		if (showLeaderboard) {
+			fetchLeaderboard();
+		}
 	}
 
 	async function handleSubmitScore() {
@@ -339,6 +351,8 @@
 			<button class="mode-btn" class:active={mode === 'quote'} onclick={() => setMode('quote')}>quote</button>
 		</div>
 		<div class="mode-divider"></div>
+		<button class="mode-btn" class:active={showLeaderboard} onclick={toggleLeaderboard}>leaderboard</button>
+		<div class="mode-divider"></div>
 		{#if mode === 'time'}
 			<div class="mode-group">
 				{#each [15, 30, 60] as t}
@@ -367,7 +381,12 @@
 		{/if}
 	</div>
 
-	{#if finished}
+	{#if showLeaderboard}
+		<div class="leaderboard-section">
+			<h2 class="leaderboard-title">Leaderboard</h2>
+			<Leaderboard scores={leaderboardScores} loading={leaderboardLoading} />
+		</div>
+	{:else if finished}
 		<!-- Score screen — replaces the words area -->
 		<div class="score-display">
 			<span class="score-wpm">{wpm}</span>

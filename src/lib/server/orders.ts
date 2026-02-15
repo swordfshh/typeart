@@ -1,6 +1,17 @@
 import { db } from './db.js';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { CartItem } from '../store/types.js';
+import type { Product } from '../store/types.js';
+import { parseProducts } from '../store/parser.js';
+
+// Load product catalog once at startup for server-side price validation
+const catalogPath = resolve('static/products.txt');
+const catalogText = readFileSync(catalogPath, 'utf-8');
+const productCatalog: Map<string, Product> = new Map(
+	parseProducts(catalogText).map((p) => [p.slug, p])
+);
 
 export interface OrderRow {
 	id: string;
@@ -57,8 +68,32 @@ export function createOrder(userId: string, items: CartItem[]): string {
 		if (item.quantity < 1 || item.quantity > 99) {
 			throw new OrderError('Invalid quantity');
 		}
-		if (item.basePrice < 0) {
-			throw new OrderError('Invalid price');
+
+		// Server-side price validation against product catalog
+		const product = productCatalog.get(item.productSlug);
+		if (!product) {
+			throw new OrderError(`Unknown product: ${item.productSlug}`);
+		}
+		if (!product.colors.includes(item.color)) {
+			throw new OrderError(`Invalid color for ${product.name}`);
+		}
+		if (toCents(item.basePrice) !== toCents(product.price)) {
+			throw new OrderError(`Price mismatch for ${product.name}`);
+		}
+		const catalogStab = product.stabilizers.find((s) => s.name === item.stabilizer.name);
+		if (!catalogStab) {
+			throw new OrderError(`Invalid stabilizer for ${product.name}`);
+		}
+		if (toCents(item.stabilizer.price) !== toCents(catalogStab.price)) {
+			throw new OrderError(`Stabilizer price mismatch for ${product.name}`);
+		}
+		if (item.wristRest) {
+			if (product.wristRestPrice <= 0) {
+				throw new OrderError(`Wrist rest not available for ${product.name}`);
+			}
+			if (toCents(item.wristRestPrice) !== toCents(product.wristRestPrice)) {
+				throw new OrderError(`Wrist rest price mismatch for ${product.name}`);
+			}
 		}
 	}
 
@@ -66,10 +101,13 @@ export function createOrder(userId: string, items: CartItem[]): string {
 
 	let totalCents = 0;
 	for (const item of items) {
+		// Use catalog prices, not client-submitted prices
+		const product = productCatalog.get(item.productSlug)!;
+		const catalogStab = product.stabilizers.find((s) => s.name === item.stabilizer.name)!;
 		const unitCents =
-			toCents(item.basePrice) +
-			toCents(item.stabilizer.price) +
-			(item.wristRest ? toCents(item.wristRestPrice) : 0);
+			toCents(product.price) +
+			toCents(catalogStab.price) +
+			(item.wristRest ? toCents(product.wristRestPrice) : 0);
 		totalCents += unitCents * item.quantity;
 	}
 
@@ -84,17 +122,20 @@ export function createOrder(userId: string, items: CartItem[]): string {
 	const run = db.transaction(() => {
 		insertOrder.run(orderId, userId, totalCents);
 		for (const item of items) {
+			// Store catalog-verified prices, not client-submitted values
+			const product = productCatalog.get(item.productSlug)!;
+			const catalogStab = product.stabilizers.find((s) => s.name === item.stabilizer.name)!;
 			insertItem.run(
 				randomUUID(),
 				orderId,
 				item.productSlug,
-				item.productName,
-				toCents(item.basePrice),
+				product.name,
+				toCents(product.price),
 				item.color,
-				item.stabilizer.name,
-				toCents(item.stabilizer.price),
+				catalogStab.name,
+				toCents(catalogStab.price),
 				item.wristRest ? 1 : 0,
-				item.wristRest ? toCents(item.wristRestPrice) : 0,
+				item.wristRest ? toCents(product.wristRestPrice) : 0,
 				item.quantity
 			);
 		}

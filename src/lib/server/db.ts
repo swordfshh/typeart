@@ -80,10 +80,17 @@ function createDb(): Database.Database {
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
+		CREATE TABLE IF NOT EXISTS rate_limits (
+			key TEXT PRIMARY KEY,
+			count INTEGER NOT NULL DEFAULT 1,
+			reset_at INTEGER NOT NULL
+		);
+
 		CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 		CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 		CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id);
 		CREATE INDEX IF NOT EXISTS idx_reset_tokens_expires ON password_reset_tokens(expires_at);
+		CREATE INDEX IF NOT EXISTS idx_rate_limits_reset ON rate_limits(reset_at);
 	`);
 
 	return db;

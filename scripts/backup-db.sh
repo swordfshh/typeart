@@ -13,7 +13,9 @@ if [ ! -f "$DB_PATH" ]; then
     exit 1
 fi
 
+umask 077
 sqlite3 "$DB_PATH" ".backup '$BACKUP_FILE'"
+chmod 600 "$BACKUP_FILE"
 echo "Backup created: $BACKUP_FILE"
 
 # Remove backups older than retention period

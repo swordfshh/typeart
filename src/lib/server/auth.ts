@@ -21,7 +21,7 @@ export const SESSION_COOKIE = 'session';
 export const COOKIE_OPTIONS = {
 	path: '/',
 	httpOnly: true,
-	secure: process.env.NODE_ENV === 'production',
+	secure: true,
 	sameSite: 'lax' as const,
 	maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60
 };
@@ -70,10 +70,7 @@ export async function register(
 		);
 	} catch (err: unknown) {
 		if (err instanceof Error && 'code' in err && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-			if (err.message.includes('username')) {
-				throw new AuthError('Username is already taken');
-			}
-			throw new AuthError('Email is already registered');
+			throw new AuthError('Username or email is already in use');
 		}
 		throw err;
 	}
@@ -85,6 +82,14 @@ export async function register(
 	};
 }
 
+// Pre-computed dummy hash for constant-time login (prevents timing-based email enumeration)
+// Generated at startup so verify() takes the same time whether user exists or not
+const DUMMY_HASH_PROMISE = hash('dummy-password-for-timing', {
+	memoryCost: 19456,
+	timeCost: 2,
+	parallelism: 1
+});
+
 export async function login(
 	email: string,
 	password: string
@@ -92,15 +97,15 @@ export async function login(
 	email = email.trim().toLowerCase();
 
 	const row = db
-		.prepare('SELECT * FROM users WHERE email = ?')
+		.prepare('SELECT id, username, email, password_hash, created_at FROM users WHERE email = ?')
 		.get(email) as UserRow | undefined;
 
-	if (!row) {
-		throw new AuthError('Invalid email or password');
-	}
+	// Always run verify to prevent timing-based email enumeration
+	const dummyHash = await DUMMY_HASH_PROMISE;
+	const hashToVerify = row ? row.password_hash : dummyHash;
+	const valid = await verify(hashToVerify, password);
 
-	const valid = await verify(row.password_hash, password);
-	if (!valid) {
+	if (!row || !valid) {
 		throw new AuthError('Invalid email or password');
 	}
 
@@ -132,7 +137,7 @@ export function cleanExpiredSessions(): void {
 }
 
 function createSession(userId: string): string {
-	const sessionId = randomUUID();
+	const sessionId = randomBytes(32).toString('hex');
 	const expiresAt = new Date(
 		Date.now() + SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000
 	).toISOString();

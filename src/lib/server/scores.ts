@@ -43,8 +43,14 @@ export function validateScore(input: ScoreInput): void {
 	if (input.mode === 'words' && !VALID_WORDS_PARAMS.includes(String(input.mode_param))) {
 		throw new ScoreError('Invalid words parameter');
 	}
-	if (input.wpm < 0 || input.wpm > 300) {
+	if (input.mode === 'quote' && input.mode_param != null && input.mode_param !== '') {
+		throw new ScoreError('Invalid quote parameter');
+	}
+	if (input.wpm < 0 || input.wpm > 250) {
 		throw new ScoreError('WPM out of range');
+	}
+	if (input.raw_wpm < 0 || input.raw_wpm > 300) {
+		throw new ScoreError('Raw WPM out of range');
 	}
 	if (input.accuracy < 0 || input.accuracy > 100) {
 		throw new ScoreError('Accuracy out of range');
@@ -54,6 +60,18 @@ export function validateScore(input: ScoreInput): void {
 	}
 	if (input.elapsed_seconds < 1) {
 		throw new ScoreError('Elapsed time too short');
+	}
+
+	// Cross-field validation: verify WPM is consistent with chars typed and time elapsed
+	// WPM = (chars / 5) / (seconds / 60). Allow 20% tolerance for rounding.
+	const expectedWpm = (input.char_count / 5) / (input.elapsed_seconds / 60);
+	if (input.wpm > expectedWpm * 1.2 + 5) {
+		throw new ScoreError('Score inconsistency detected');
+	}
+
+	// raw_wpm should be >= wpm (raw includes uncorrected errors)
+	if (input.raw_wpm < input.wpm - 1) {
+		throw new ScoreError('Score inconsistency detected');
 	}
 }
 

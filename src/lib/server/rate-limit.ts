@@ -1,4 +1,4 @@
-const windows = new Map<string, { count: number; resetAt: number }>();
+import { db } from './db.js';
 
 export function rateLimit(
 	key: string,
@@ -6,24 +6,29 @@ export function rateLimit(
 	windowMs: number = 15 * 60 * 1000
 ): { allowed: boolean; retryAfterMs: number } {
 	const now = Date.now();
-	const entry = windows.get(key);
 
-	if (!entry || now > entry.resetAt) {
-		windows.set(key, { count: 1, resetAt: now + windowMs });
+	const row = db
+		.prepare('SELECT count, reset_at FROM rate_limits WHERE key = ?')
+		.get(key) as { count: number; reset_at: number } | undefined;
+
+	// No entry or window expired — start fresh
+	if (!row || now > row.reset_at) {
+		db.prepare(
+			'INSERT OR REPLACE INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?)'
+		).run(key, now + windowMs);
 		return { allowed: true, retryAfterMs: 0 };
 	}
 
-	if (entry.count >= maxAttempts) {
-		return { allowed: false, retryAfterMs: entry.resetAt - now };
+	// Over limit
+	if (row.count >= maxAttempts) {
+		return { allowed: false, retryAfterMs: row.reset_at - now };
 	}
 
-	entry.count++;
+	// Increment
+	db.prepare('UPDATE rate_limits SET count = count + 1 WHERE key = ?').run(key);
 	return { allowed: true, retryAfterMs: 0 };
 }
 
 export function cleanupRateLimits(): void {
-	const now = Date.now();
-	for (const [key, entry] of windows) {
-		if (now > entry.resetAt) windows.delete(key);
-	}
+	db.prepare('DELETE FROM rate_limits WHERE reset_at < ?').run(Date.now());
 }

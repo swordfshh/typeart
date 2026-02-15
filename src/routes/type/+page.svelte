@@ -2,9 +2,16 @@
 	import { onMount } from 'svelte';
 	import { randomWords, randomQuote } from '$lib/typing/words.js';
 	import { authStore } from '$lib/stores/auth.svelte.js';
+	import Leaderboard from '../../components/Leaderboard.svelte';
 
 	// --- Types ---
 	type Mode = 'time' | 'words' | 'quote';
+	interface Score {
+		username: string;
+		wpm: number;
+		accuracy: number;
+		created_at: string;
+	}
 
 	// --- State ---
 	let mode: Mode = $state('time');
@@ -33,6 +40,8 @@
 	let displayStart = $state(0);
 
 	let scoreSubmitted: 'idle' | 'submitting' | 'done' | 'error' = $state('idle');
+	let leaderboardScores: Score[] = $state([]);
+	let leaderboardLoading = $state(false);
 
 	// --- Derived ---
 	const wpm = $derived.by(() => {
@@ -80,6 +89,8 @@
 		displayStart = 0;
 		timeLeft = mode === 'time' ? timeOption : 0;
 		scoreSubmitted = 'idle';
+		leaderboardScores = [];
+		leaderboardLoading = false;
 		generateWords();
 		requestAnimationFrame(() => inputEl?.focus());
 	}
@@ -118,6 +129,7 @@
 			});
 			if (res.ok) {
 				scoreSubmitted = 'done';
+				fetchLeaderboard();
 			} else {
 				scoreSubmitted = 'error';
 			}
@@ -145,6 +157,23 @@
 		timer = null;
 		finished = true;
 		elapsed = (Date.now() - startTime) / 1000;
+		fetchLeaderboard();
+	}
+
+	async function fetchLeaderboard() {
+		leaderboardLoading = true;
+		try {
+			const param = mode === 'quote' ? '' : String(mode === 'time' ? timeOption : wordsOption);
+			const res = await fetch(`/api/scores?mode=${mode}&param=${param}&limit=10`);
+			if (res.ok) {
+				const data = await res.json();
+				leaderboardScores = data.scores;
+			}
+		} catch {
+			// silently fail — leaderboard is non-critical
+		} finally {
+			leaderboardLoading = false;
+		}
 	}
 
 	/** For timed mode: after advancing a word, scroll if current word is past line 2. Keeps 1 completed line visible. */
@@ -366,6 +395,10 @@
 				{/if}
 			</div>
 			<span class="restart-hint">press <kbd>enter</kbd> to restart</span>
+		</div>
+		<div class="leaderboard-section">
+			<h2 class="leaderboard-title">Leaderboard</h2>
+			<Leaderboard scores={leaderboardScores} loading={leaderboardLoading} />
 		</div>
 	{:else}
 		<!-- Word display -->
@@ -631,5 +664,23 @@
 		border: 1px solid var(--base01);
 		border-radius: var(--radius-sm);
 		color: var(--base0);
+	}
+
+	.leaderboard-section {
+		width: 100%;
+		margin-top: 16px;
+		padding: 20px;
+		background-color: var(--base02);
+		border: 1px solid var(--base01);
+		border-radius: var(--radius-lg);
+	}
+
+	.leaderboard-title {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--base00);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: 12px;
 	}
 </style>

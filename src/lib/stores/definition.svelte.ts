@@ -86,6 +86,14 @@ class DefinitionStore {
 		return this.definition?.matrix.cols ?? 0;
 	}
 
+	/** Registry entry for the currently loaded definition */
+	get currentEntry(): KeyboardRegistryEntry | undefined {
+		if (!this.definition) return undefined;
+		return this.registry.find(
+			(e) => e.vendorId === this.definition!.vendorId && e.productId === this.definition!.productId
+		);
+	}
+
 	/**
 	 * Load the keyboard registry.
 	 */

@@ -1,17 +1,5 @@
 [
 	{
-		"name": "TypeArt 65",
-		"path": "typeart65",
-		"vendorId": "0x5441",
-		"productId": "0x0065"
-	},
-	{
-		"name": "Graystudio Space65",
-		"path": "space65",
-		"vendorId": "0x4753",
-		"productId": "0x3000"
-	},
-	{
 		"name": "GrayStudio Space65 R3",
 		"path": "space65r3",
 		"vendorId": "0x4753",
@@ -21,12 +9,16 @@
 		"name": "Lux40v2",
 		"path": "lux40v2",
 		"vendorId": "0x4C4D",
-		"productId": "0x0001"
+		"productId": "0x0001",
+		"firmware": "/firmware/lux40v2_via.bin",
+		"firmwareSha256": "d941e27b1d6e8014b38e631deaaae5806c7cebf5c740ee742f7362b551799c77"
 	},
 	{
 		"name": "Lux36",
 		"path": "lux36",
 		"vendorId": "0x4C4D",
-		"productId": "0x0002"
+		"productId": "0x0002",
+		"firmware": "/firmware/lux36_via.bin",
+		"firmwareSha256": "9c4e2204ae82eefc939335d931fe9ebadbcd0741c92d793c4f0202e03ae864b7"
 	}
 ]

@@ -101,10 +101,10 @@
 
 	{#if !deviceStore.isConnected && definitionStore.registry.length > 0}
 		<div class="definition-selector">
-			<p class="hint">Or load a keyboard definition to browse offline:</p>
+			<p class="hint">Or load a keyboard definition to browse offline. VIA firmware available for <span class="hint-dl">download</span> for highlighted boards.</p>
 			<div class="def-list">
 				{#each definitionStore.registry as entry}
-					<button class="def-btn" onclick={() => handleManualLoad(entry.path)}>
+					<button class="def-btn" class:has-firmware={!!entry.firmware} onclick={() => handleManualLoad(entry.path)}>
 						{entry.name}
 					</button>
 				{/each}
@@ -115,7 +115,17 @@
 	{#if definitionStore.definition}
 		<div class="editor">
 			<div class="editor-header">
-				<h2>{definitionStore.definition.name}</h2>
+				<div class="editor-title">
+					<h2>{definitionStore.definition.name}</h2>
+					{#if definitionStore.currentEntry?.firmware}
+						<a
+							class="fw-link"
+							href={definitionStore.currentEntry.firmware}
+							download
+							title="SHA256: {definitionStore.currentEntry.firmwareSha256}"
+						>firmware</a>
+					{/if}
+				</div>
 				{#if keymapStore.layerCount > 0}
 					<ImportExport />
 				{/if}
@@ -233,6 +243,27 @@
 		border-color: var(--blue);
 	}
 
+	.def-btn.has-firmware:hover {
+		border-color: var(--green);
+	}
+
+	.hint-dl {
+		color: var(--green);
+		font-weight: 600;
+	}
+
+	.fw-link {
+		font-size: 0.75rem;
+		color: var(--green);
+		font-weight: 500;
+		transition: color 100ms ease;
+	}
+
+	.fw-link:hover {
+		color: var(--base1);
+		text-decoration: none;
+	}
+
 	.editor {
 		display: flex;
 		flex-direction: column;
@@ -243,6 +274,12 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+	}
+
+	.editor-title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 	}
 
 	.editor-header h2 {

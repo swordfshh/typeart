@@ -19,12 +19,35 @@
 		authStore.init(data.user);
 	});
 
+	let accountOpen = $state(false);
+
+	function toggleAccount() {
+		accountOpen = !accountOpen;
+	}
+
+	function closeAccount() {
+		accountOpen = false;
+	}
+
+	function handleAccountKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') closeAccount();
+	}
+
 	onMount(async () => {
 		themeStore.hydrate();
 		cartStore.hydrate();
 		if (!authStore.loggedIn) {
 			await authStore.fetchUser();
 		}
+
+		function handleClickOutside(e: MouseEvent) {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.account-menu')) {
+				accountOpen = false;
+			}
+		}
+		document.addEventListener('click', handleClickOutside);
+		return () => document.removeEventListener('click', handleClickOutside);
 	});
 </script>
 
@@ -36,15 +59,22 @@
 			<a href="/configure">Configure</a>
 			<a href="/test">Test</a>
 			<a href="/type">Type</a>
-			<a href="/game">Game</a>
 			<a href="/store">Store</a>
-			{#if authStore.loggedIn}
-				<a href="/orders">Orders</a>
-			{/if}
 			<a href="/store/cart" class="cart-link">Cart<CartBadge count={cartStore.totalItems} /></a>
 			{#if authStore.loggedIn}
-				<span class="auth-user">{authStore.user?.username}</span>
-				<button class="auth-btn" onclick={() => authStore.logout()}>Log out</button>
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="account-menu" onkeydown={handleAccountKeydown}>
+					<button class="account-btn" onclick={toggleAccount}>
+						{authStore.user?.username}
+						<span class="account-arrow" class:open={accountOpen}>&#9662;</span>
+					</button>
+					{#if accountOpen}
+						<div class="account-dropdown">
+							<a href="/orders" class="dropdown-item" onclick={closeAccount}>Orders</a>
+							<button class="dropdown-item" onclick={() => { closeAccount(); authStore.logout(); }}>Log out</button>
+						</div>
+					{/if}
+				</div>
 			{:else}
 				<a href="/login" class="auth-btn">Log in</a>
 			{/if}
@@ -114,6 +144,7 @@
 
 	.nav-links {
 		display: flex;
+		align-items: center;
 		gap: 24px;
 	}
 
@@ -155,9 +186,67 @@
 		padding: 24px;
 	}
 
-	.auth-user {
-		font-size: 0.85rem;
+	.account-menu {
+		position: relative;
+	}
+
+	.account-btn {
+		font-size: 0.8rem;
 		font-weight: 600;
+		padding: 4px 12px;
+		border-radius: var(--radius-sm);
+		background: var(--base01);
+		color: var(--base0);
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		transition: filter 150ms ease;
+	}
+
+	.account-btn:hover {
+		filter: brightness(1.1);
+	}
+
+	.account-arrow {
+		font-size: 0.65rem;
+		transition: transform 150ms ease;
+	}
+
+	.account-arrow.open {
+		transform: rotate(180deg);
+	}
+
+	.account-dropdown {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		min-width: 140px;
+		background-color: var(--base02);
+		border: 1px solid var(--base01);
+		border-radius: var(--radius-md);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		overflow: hidden;
+		z-index: 100;
+	}
+
+	.dropdown-item {
+		display: block;
+		width: 100%;
+		padding: 10px 16px;
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: var(--base0);
+		background: none;
+		border: none;
+		text-align: left;
+		font-family: inherit;
+		cursor: pointer;
+		transition: background-color 100ms ease;
+	}
+
+	.dropdown-item:hover {
+		background-color: var(--base03);
+		text-decoration: none;
 		color: var(--base1);
 	}
 

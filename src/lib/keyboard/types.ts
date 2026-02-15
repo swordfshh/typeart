@@ -96,6 +96,8 @@ export interface KeyboardRegistryEntry {
 	path: string;
 	vendorId: string;
 	productId: string;
+	firmware?: string;
+	firmwareSha256?: string;
 }
 
 /** Layout option definition */

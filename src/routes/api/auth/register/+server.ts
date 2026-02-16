@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { register, AuthError, COOKIE_OPTIONS, SESSION_COOKIE } from '$lib/server/auth.js';
 import { rateLimit } from '$lib/server/rate-limit.js';
+import { logSecurity } from '$lib/server/security-log.js';
 
 export const POST: RequestHandler = async ({ request, cookies, getClientAddress }) => {
 	const { allowed, retryAfterMs } = rateLimit(`register:${getClientAddress()}`, 5);
@@ -25,6 +26,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 	try {
 		const { user, sessionId } = await register(username, email, password);
 		cookies.set(SESSION_COOKIE, sessionId, COOKIE_OPTIONS);
+		logSecurity('register', getClientAddress(), user.id);
 		return json({ user });
 	} catch (err) {
 		if (err instanceof AuthError) {

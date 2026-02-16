@@ -9,6 +9,17 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// CSRF protection: reject state-changing requests with mismatched Origin
+	if (event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+		const origin = event.request.headers.get('origin');
+		if (origin) {
+			const url = new URL(event.request.url);
+			if (origin !== url.origin) {
+				return new Response('Forbidden', { status: 403 });
+			}
+		}
+	}
+
 	const sessionId = event.cookies.get(SESSION_COOKIE);
 
 	if (sessionId) {

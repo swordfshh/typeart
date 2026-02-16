@@ -96,6 +96,20 @@ export async function login(
 ): Promise<{ user: User; sessionId: string }> {
 	email = email.trim().toLowerCase();
 
+	// Check account lockout
+	const attempt = db
+		.prepare('SELECT failed_count, locked_until FROM login_attempts WHERE email = ?')
+		.get(email) as { failed_count: number; locked_until: string | null } | undefined;
+
+	if (attempt?.locked_until) {
+		const lockedUntil = new Date(attempt.locked_until + 'Z').getTime();
+		if (Date.now() < lockedUntil) {
+			throw new AuthError('Account temporarily locked. Try again later.');
+		}
+		// Lock expired, reset
+		db.prepare('DELETE FROM login_attempts WHERE email = ?').run(email);
+	}
+
 	const row = db
 		.prepare('SELECT id, username, email, password_hash, created_at FROM users WHERE email = ?')
 		.get(email) as UserRow | undefined;
@@ -106,8 +120,26 @@ export async function login(
 	const valid = await verify(hashToVerify, password);
 
 	if (!row || !valid) {
+		// Track failed attempt
+		if (row) {
+			const count = (attempt?.failed_count ?? 0) + 1;
+			let lockedUntil: string | null = null;
+			if (count >= 10) {
+				lockedUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+			} else if (count >= 5) {
+				lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
+			}
+			db.prepare(
+				`INSERT INTO login_attempts (email, failed_count, locked_until, last_attempt_at)
+				 VALUES (?, ?, ?, datetime('now'))
+				 ON CONFLICT(email) DO UPDATE SET failed_count = ?, locked_until = ?, last_attempt_at = datetime('now')`
+			).run(email, count, lockedUntil, count, lockedUntil);
+		}
 		throw new AuthError('Invalid email or password');
 	}
+
+	// Successful login — clear failed attempts
+	db.prepare('DELETE FROM login_attempts WHERE email = ?').run(email);
 
 	const sessionId = createSession(row.id);
 	return {
@@ -136,17 +168,81 @@ export function cleanExpiredSessions(): void {
 	db.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run();
 }
 
-function createSession(userId: string): string {
+const MAX_SESSIONS_PER_USER = 5;
+
+export function createSession(userId: string): string {
 	const sessionId = randomBytes(32).toString('hex');
 	const expiresAt = new Date(
 		Date.now() + SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000
 	).toISOString();
+
+	// Enforce max sessions: delete oldest if over limit
+	const count = (db.prepare('SELECT COUNT(*) as c FROM sessions WHERE user_id = ?').get(userId) as { c: number }).c;
+	if (count >= MAX_SESSIONS_PER_USER) {
+		db.prepare(
+			`DELETE FROM sessions WHERE id IN (
+				SELECT id FROM sessions WHERE user_id = ?
+				ORDER BY created_at ASC LIMIT ?
+			)`
+		).run(userId, count - MAX_SESSIONS_PER_USER + 1);
+	}
+
 	db.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').run(
 		sessionId,
 		userId,
 		expiresAt
 	);
 	return sessionId;
+}
+
+// --- Password change ---
+
+export async function changePassword(
+	userId: string,
+	currentPassword: string,
+	newPassword: string
+): Promise<void> {
+	if (newPassword.length < 8) {
+		throw new AuthError('Password must be at least 8 characters');
+	}
+
+	const row = db
+		.prepare('SELECT password_hash FROM users WHERE id = ?')
+		.get(userId) as { password_hash: string } | undefined;
+
+	if (!row) {
+		throw new AuthError('User not found');
+	}
+
+	const valid = await verify(row.password_hash, currentPassword);
+	if (!valid) {
+		throw new AuthError('Current password is incorrect');
+	}
+
+	const passwordHash = await hash(newPassword, {
+		memoryCost: 19456,
+		timeCost: 2,
+		parallelism: 1
+	});
+
+	db.transaction(() => {
+		db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, userId);
+		// Invalidate all other sessions (keep current one via the caller)
+		db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+	})();
+}
+
+// --- Account deletion ---
+
+export function deleteAccount(userId: string): void {
+	db.transaction(() => {
+		db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+		db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(userId);
+		db.prepare('DELETE FROM typing_scores WHERE user_id = ?').run(userId);
+		db.prepare('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE user_id = ?)').run(userId);
+		db.prepare('DELETE FROM orders WHERE user_id = ?').run(userId);
+		db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+	})();
 }
 
 // --- Password reset ---

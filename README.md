@@ -19,14 +19,20 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 
 | Route | Purpose |
 |---|---|
-| `/` | Landing — rainbow-lettered logo, WebHID check, nav cards (Store full-width, Configure + Matrix Test below) |
+| `/` | Landing — rainbow-lettered logo, WebHID check, 2×2 nav cards (Store · Configure · Typing Test · Matrix Test) |
 | `/store` | Product grid — keyboard kits with detail pages, variant selection, cart with localStorage |
 | `/configure` | Live keymap editor — connect keyboard, auto-detect definition, click-to-reassign keys, always-visible keycode picker with search/categories/LT-MT builder/"Any" key input |
 | `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
-| `/type` | Typing speed test — time/words/quote modes, leaderboard toggle in settings bar, score submission + leaderboard on finish |
+| `/type` | Typing speed test — time/words/quote modes, inline stats + leaderboard toggles in settings bar, score submission + leaderboard on finish |
 | `/orders` | Order history — list of placed orders with status, links to detail |
 | `/orders/[id]` | Order detail — itemized breakdown with color, variants, totals |
 | `/login` | Login/register — tabbed form, session-based auth |
+| `/forgot-password` | Password reset request — sends email with reset link |
+| `/reset-password` | Password reset — token-validated new password form |
+| `/settings` | Account settings — change password, delete account |
+| `/privacy` | Privacy policy |
+| `/terms` | Terms of service |
+| `+error.svelte` | Custom 404/error page with status code and back-to-home link |
 
 ## Architecture
 
@@ -119,8 +125,8 @@ Three switchable colorways, toggled via the navbar **Theme** button. Choice pers
 
 | Theme | Style | Background | Accents |
 |---|---|---|---|
-| **Retro Beige** (default) | Vintage Macintosh Platinum era | Warm beige `#E8DCC6` | Apple rainbow |
-| **Miami Nights** | Dark synthwave | Deep indigo `#0f0e17` | Neon cyan `#0AD2D3` + hot pink `#FF2E97` |
+| **Retro Beige** | Vintage Macintosh Platinum era | Warm beige `#E8DCC6` | Apple rainbow |
+| **Miami Nights** (default) | Dark synthwave | Deep indigo `#0f0e17` | Neon cyan `#0AD2D3` + hot pink `#FF2E97` |
 | **Godspeed** | NASA Apollo mission control | Warm cream `#e3d5b9` | NASA gold `#ffdb58` + powder blue `#5991ae` |
 
 Logo colors, card hover gradients, and all UI tokens adapt per theme.
@@ -186,11 +192,13 @@ src/
 │   │   ├── theme.svelte.ts         # themeStore — theme switcher with localStorage
 │   │   └── auth.svelte.ts          # authStore — user state, login/register/logout
 │   ├── server/
-│   │   ├── db.ts                    # SQLite (better-sqlite3, WAL mode, schema init)
-│   │   ├── auth.ts                  # register, login, sessions (Argon2id)
-│   │   ├── rate-limit.ts            # In-memory sliding window rate limiter
-│   │   ├── scores.ts               # Score validation, submission, leaderboard queries
-│   │   └── orders.ts               # Order creation (transactional), queries by user
+│   │   ├── db.ts                    # SQLite (better-sqlite3, WAL mode, schema init, graceful shutdown)
+│   │   ├── auth.ts                  # register, login, sessions, password change, account deletion (Argon2id, timing-safe, lockout)
+│   │   ├── rate-limit.ts            # SQLite-backed sliding window rate limiter
+│   │   ├── scores.ts               # Score validation (cross-field checks), submission, leaderboard queries
+│   │   ├── orders.ts               # Order creation (transactional, server-side price validation)
+│   │   ├── email.ts                # Email service (Resend) — password reset, order confirmation
+│   │   └── security-log.ts         # Security event logger (login, lockout, password change, deletion)
 │   └── utils/
 │       ├── bytes.ts                 # readUint16BE, writeUint16BE, toHex
 │       └── export.ts                # exportKeymap, parseImportedKeymap, downloadJson
@@ -207,20 +215,26 @@ src/
 │   ├── VariantSelector.svelte       # Labeled <select> dropdown
 │   ├── CartBadge.svelte             # Cart item count badge
 │   └── Leaderboard.svelte          # Ranked score table (WPM, accuracy)
-├── hooks.server.ts                  # Session parsing, cleanup intervals
+├── hooks.server.ts                  # Session parsing, CSRF protection, security headers, cleanup intervals
 └── routes/
-    ├── +layout.svelte               # Nav bar (rainbow logo, account dropdown) + main slot
+    ├── +layout.svelte               # Nav bar (rainbow logo, account dropdown, mobile hamburger) + footer + main slot
     ├── +layout.server.ts            # Pass user to all pages
-    ├── +page.svelte                 # Home (Store hero + Configure/Test cards)
+    ├── +error.svelte                # Custom 404/error page
+    ├── +page.svelte                 # Home (2×2 nav cards: Store · Configure · Typing Test · Matrix Test)
     ├── configure/+page.svelte       # Keymap editor
     ├── test/+page.svelte            # Matrix tester
-    ├── type/+page.svelte            # Typing speed test + score submission + leaderboard
+    ├── type/+page.svelte            # Typing speed test + inline stats/leaderboard + score submission
     ├── login/+page.svelte           # Login/register tabbed form
+    ├── settings/+page.svelte         # Account settings (change password, delete account)
+    ├── forgot-password/+page.svelte # Password reset request
+    ├── reset-password/+page.svelte  # Token-validated password reset
+    ├── privacy/+page.svelte         # Privacy policy
+    ├── terms/+page.svelte           # Terms of service
     ├── orders/
     │   ├── +page.svelte             # Order history list
     │   └── [id]/+page.svelte        # Order detail with itemized breakdown
     ├── api/
-    │   ├── auth/{register,login,logout,me}/+server.ts  # Auth API routes
+    │   ├── auth/{register,login,logout,me,forgot-password,reset-password,change-password,delete-account}/+server.ts
     │   ├── scores/{+server.ts,me/+server.ts}           # Score API routes
     │   └── orders/{+server.ts,[id]/+server.ts}         # Order API routes
     └── store/
@@ -292,7 +306,7 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 - **Import writes key-by-key** — could use `DynamicKeymapSetBuffer` for bulk writes
 - **Single device** — one keyboard at a time
 - **No payment processing** — checkout disabled pending payment gateway integration
-- **Game page hidden** — Asteroid Run (`/game`) removed from nav, route still exists for future rework
+- **Game page hidden** — Asteroid Run (`/game`) removed from nav and home page, route still exists for future rework
 
 ## Roadmap
 
@@ -303,8 +317,59 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 - [x] **Phase 3 — Typing Leaderboards**: Score submission API (anti-cheat: WPM cap 300, min chars, elapsed time), public leaderboard API, personal bests/recent scores, "Submit Score" button on typing test finish screen, `Leaderboard.svelte` component
 - [x] **Phase 4 — Order Tracking**: Orders + order_items DB tables (prices in integer cents), transactional order creation, `POST /api/orders` (auth + rate limited), `GET /api/orders` + `GET /api/orders/[id]`, cart checkout flow with auth redirect, `/orders` history page, `/orders/[id]` detail page, "Orders" nav link (checkout disabled pending payment integration)
 - [x] **Phase 5 — Deployment (Raspberry Pi 5)**: NVMe SSD, systemd service, nginx reverse proxy, Cloudflare Tunnel (typeart.co), daily SQLite backup cron with 7-day retention
+- [x] **Phase 6 — Email Service**: Resend integration for password reset flow (forgot-password → email → reset-password) and order confirmation emails
+- [x] **Phase 7 — Security Hardening**: Server-side price validation against product catalog, security headers (CSP, X-Frame-Options, HSTS, etc.) in hooks + nginx, Argon2 timing-attack mitigation, generic registration errors, session tokens upgraded to randomBytes(32), SQLite-backed rate limiting, score validation hardening (cross-field checks, WPM cap 250)
+- [x] **Phase 8 — UX Polish**: Per-page browser tab titles, custom 404/error page, site footer (privacy policy, terms of service, contact), inline personal stats on typing test page, mobile responsive navigation (hamburger menu below 640px), Miami Nights as default theme, per-theme button borders, graceful shutdown (db.close on SIGTERM, SHUTDOWN_TIMEOUT=3)
+- [x] **Phase 9 — Security Hardening II**: Password change endpoint (invalidates other sessions), account deletion (GDPR right to erasure), CSRF protection (Origin header checking), leaderboard query param validation, nginx request body size limit (1MB), max 5 sessions per user, account lockout (5 failures = 15min, 10 = 1hr), security event logging (login/lockout/password change/deletion with IP)
 
 ## Changelog
+
+### 2026-02-16
+
+**Security hardening II**
+- Password change endpoint (`POST /api/auth/change-password`): verifies current password, updates hash, invalidates all other sessions, rate limited (5/15min)
+- Account deletion endpoint (`POST /api/auth/delete-account`): password-verified, cascading delete of all user data (sessions, scores, orders, reset tokens), rate limited (3/15min)
+- Settings page (`/settings`): change password form + two-step account deletion with confirmation
+- CSRF protection: Origin header checking in `hooks.server.ts` for all POST/PUT/DELETE requests — rejects cross-origin requests with 403
+- Leaderboard query param validation: `mode` and `param` validated against allowed values before SQL query
+- Nginx request body size limit: `client_max_body_size 1M` prevents DoS via large payloads
+- Max 5 concurrent sessions per user: oldest sessions pruned on new login
+- Account lockout: 5 failed login attempts = 15min lock, 10 failures = 1hr lock, clears on successful login
+- Security event logging: `security_logs` table recording login success/failure, account lockouts, registrations, password changes/resets, account deletions with IP and timestamp
+
+**Security hardening**
+- Server-side price validation: orders now validate slug, color, stabilizer, and wrist rest prices against the product catalog (`static/products.txt`) — client-submitted prices are ignored
+- Security headers on all responses (hooks.server.ts + nginx): CSP, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy, Permissions-Policy, HSTS
+- Login timing attack fix: always runs Argon2 verify (dummy hash for non-existent users) so response time doesn't leak whether an account exists
+- Generic registration error message ("Username or email is already in use") to prevent account enumeration
+- Session tokens upgraded from UUID to `randomBytes(32).toString('hex')`
+- Rate limiting moved from in-memory Map to SQLite (persists across restarts)
+- Score validation: WPM cap lowered to 250, raw_wpm cap 300, cross-field consistency checks (WPM vs chars/time), raw_wpm must be >= wpm
+- Cookie `secure` flag always true (was conditional on NODE_ENV)
+- Database file permissions hardened (chmod 600/700)
+
+**Email service**
+- Added Resend integration (`src/lib/server/email.ts`) for transactional emails
+- Forgot password flow: `/forgot-password` → email with tokenized reset link → `/reset-password` with token validation
+- Order confirmation emails sent on checkout
+
+**UX improvements**
+- Per-page `<title>` tags on all routes (Configure, Matrix Test, Typing Test, Store, Cart, Orders, etc.)
+- Custom 404/error page (`+error.svelte`) with large monospace status code and back-to-home link
+- Site footer on all pages: copyright, Privacy Policy, Terms of Service, Contact (mailto)
+- Privacy policy (`/privacy`) and Terms of Service (`/terms`) pages
+- Personal stats (bests + recent scores) as inline panel on typing test page, toggled from mode bar between "quote" and "leaderboard"
+- Mobile responsive navigation: hamburger menu with animated open/close below 640px, mobile cart badge always visible, responsive footer stacking
+
+**Theme & UI**
+- Default theme changed to Miami Nights (was Retro Beige)
+- Theme button border now matches active theme: rainbow gradient for Retro Beige, gold/red/blue for Godspeed, cyan/violet/pink for Miami Nights
+- Home page: removed Asteroid Run tile, Store now half-width, 2×2 grid (Store · Configure · Typing Test · Matrix Test)
+- Fixed card content shift on hover in Retro Beige and Godspeed (border-width now constant, only color changes on hover)
+
+**Infrastructure**
+- Graceful shutdown: `db.close()` on SIGTERM/SIGINT/sveltekit:shutdown prevents slow WAL checkpoint on exit
+- `SHUTDOWN_TIMEOUT=3` (adapter-node) + `TimeoutStopSec=10` (systemd) — restart went from ~90s to <1s
 
 ### 2026-02-15
 
@@ -366,7 +431,7 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 ### 2026-02-12
 
 **Theme system**
-- Added switchable colorways: Retro Beige (default), Miami Nights, and Godspeed
+- Added switchable colorways: Retro Beige, Miami Nights, and Godspeed
 - Theme button in navbar (left of Configure) with cyan→violet→pink gradient border
 - Miami Nights: dark indigo base with neon cyan/pink accents (synthwave aesthetic)
 - Godspeed: warm cream base with NASA gold/powder blue accents (Apollo mission control)
@@ -424,5 +489,5 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 **Visual refresh**
 - Rethemed from Solarized Dark to vintage Macintosh beige with Apple rainbow accents
 - Logo: Courier Prime italic (loaded from Google Fonts), per-letter muted rainbow colors
-- Home page: Store card full-width on top, Configure/Matrix Test side-by-side below, rainbow gradient border on hover with rounded corners
+- Home page: 2×2 nav card grid with rainbow gradient border on hover with rounded corners
 - Linux udev rules file (`static/99-typeart.rules`) for HID device permissions

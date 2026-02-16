@@ -40,11 +40,27 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 	}
 };
 
+const VALID_MODES = ['time', 'words', 'quote'];
+const VALID_PARAMS: Record<string, string[]> = {
+	time: ['15', '30', '60'],
+	words: ['10', '25', '50'],
+	quote: ['']
+};
+
 export const GET: RequestHandler = async ({ url }) => {
 	const mode = url.searchParams.get('mode') || 'time';
-	const param = url.searchParams.get('param') || '30';
-	const limit = Math.min(Number(url.searchParams.get('limit') || 20), 100);
+	if (!VALID_MODES.includes(mode)) {
+		return json({ error: 'Invalid mode' }, { status: 400 });
+	}
 
-	const scores = getTopScores(mode, param, limit);
+	const param = url.searchParams.get('param') || (mode === 'quote' ? '' : '30');
+	const validParams = VALID_PARAMS[mode];
+	if (validParams && !validParams.includes(param)) {
+		return json({ error: 'Invalid parameter' }, { status: 400 });
+	}
+
+	const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit') || 20) || 20), 100);
+
+	const scores = getTopScores(mode, param || null, limit);
 	return json({ scores });
 };

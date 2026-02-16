@@ -86,11 +86,29 @@ function createDb(): Database.Database {
 			reset_at INTEGER NOT NULL
 		);
 
+		CREATE TABLE IF NOT EXISTS login_attempts (
+			email TEXT PRIMARY KEY,
+			failed_count INTEGER NOT NULL DEFAULT 0,
+			locked_until TEXT,
+			last_attempt_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		CREATE TABLE IF NOT EXISTS security_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			event TEXT NOT NULL,
+			ip TEXT,
+			user_id TEXT,
+			detail TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
 		CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 		CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 		CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id);
 		CREATE INDEX IF NOT EXISTS idx_reset_tokens_expires ON password_reset_tokens(expires_at);
 		CREATE INDEX IF NOT EXISTS idx_rate_limits_reset ON rate_limits(reset_at);
+		CREATE INDEX IF NOT EXISTS idx_security_logs_event ON security_logs(event);
+		CREATE INDEX IF NOT EXISTS idx_security_logs_created ON security_logs(created_at);
 	`);
 
 	return db;

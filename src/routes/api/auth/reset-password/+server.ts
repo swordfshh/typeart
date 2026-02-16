@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { resetPassword, AuthError } from '$lib/server/auth.js';
 import { rateLimit } from '$lib/server/rate-limit.js';
+import { logSecurity } from '$lib/server/security-log.js';
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	const { allowed, retryAfterMs } = rateLimit(`reset:${getClientAddress()}`, 5);
@@ -24,6 +25,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 	try {
 		await resetPassword(token, password);
+		logSecurity('password_reset', getClientAddress(), null);
 		return json({ ok: true });
 	} catch (err) {
 		if (err instanceof AuthError) {

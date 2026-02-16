@@ -192,9 +192,9 @@
 	{:else if !definitionStore.loading}
 		<div class="empty-state">
 			<p>Connect a VIA-compatible keyboard to start editing keymaps.</p>
+			<p class="attribution">Built on <a href="https://qmk.fm" target="_blank" rel="noopener">QMK</a> and <a href="https://usevia.app" target="_blank" rel="noopener">VIA</a></p>
 		</div>
 	{/if}
-	<p class="attribution">Built on <a href="https://qmk.fm" target="_blank" rel="noopener">QMK</a> and <a href="https://usevia.app" target="_blank" rel="noopener">VIA</a></p>
 </div>
 
 <style>
@@ -351,13 +351,14 @@
 	}
 
 	.attribution {
-		text-align: center;
-		font-size: 0.75rem;
-		color: var(--base01);
-		margin-top: 8px;
+		font-size: 0.8125rem;
+		color: var(--base00);
+		margin-top: 24px;
 	}
 
 	.attribution a {
-		color: var(--base00);
+		color: var(--base0);
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 </style>

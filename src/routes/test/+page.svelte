@@ -265,6 +265,7 @@
 	{:else}
 		<div class="empty-state">
 			<p>Connect a VIA-compatible keyboard to test the switch matrix.</p>
+			<p class="attribution">Built on <a href="https://qmk.fm" target="_blank" rel="noopener">QMK</a> and <a href="https://usevia.app" target="_blank" rel="noopener">VIA</a></p>
 		</div>
 	{/if}
 </div>
@@ -361,5 +362,17 @@
 		text-align: center;
 		padding: 48px;
 		color: var(--base00);
+	}
+
+	.attribution {
+		font-size: 0.8125rem;
+		color: var(--base00);
+		margin-top: 24px;
+	}
+
+	.attribution a {
+		color: var(--base0);
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 </style>

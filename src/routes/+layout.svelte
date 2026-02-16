@@ -71,7 +71,6 @@
 			<a href="/configure">Configure</a>
 			<a href="/test">Test</a>
 			<a href="/type">Type</a>
-			<a href="/stats">Stats</a>
 			<a href="/store">Store</a>
 			<a href="/store/cart" class="cart-link">Cart<CartBadge count={cartStore.totalItems} /></a>
 			{#if authStore.loggedIn}
@@ -104,7 +103,6 @@
 			<a href="/configure" onclick={closeMenu}>Configure</a>
 			<a href="/test" onclick={closeMenu}>Test</a>
 			<a href="/type" onclick={closeMenu}>Type</a>
-			<a href="/stats" onclick={closeMenu}>Stats</a>
 			<a href="/store" onclick={closeMenu}>Store</a>
 			<a href="/store/cart" onclick={closeMenu}>Cart</a>
 			{#if authStore.loggedIn}

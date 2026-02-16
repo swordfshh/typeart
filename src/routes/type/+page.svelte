@@ -12,6 +12,17 @@
 		accuracy: number;
 		created_at: string;
 	}
+	interface PersonalScore {
+		id: string;
+		wpm: number;
+		raw_wpm: number;
+		accuracy: number;
+		char_count: number;
+		elapsed_seconds: number;
+		created_at: string;
+		mode: string;
+		mode_param: string | null;
+	}
 
 	// --- State ---
 	let mode: Mode = $state('time');
@@ -43,6 +54,11 @@
 	let leaderboardScores: Score[] = $state([]);
 	let leaderboardLoading = $state(false);
 	let showLeaderboard = $state(false);
+
+	let showStats = $state(false);
+	let statsBests: PersonalScore[] = $state([]);
+	let statsRecent: PersonalScore[] = $state([]);
+	let statsLoading = $state(false);
 
 	// --- Derived ---
 	const wpm = $derived.by(() => {
@@ -80,6 +96,7 @@
 		started = false;
 		finished = false;
 		showLeaderboard = false;
+		showStats = false;
 		startTime = 0;
 		elapsed = 0;
 		currentWordIndex = 0;
@@ -100,27 +117,85 @@
 	function setMode(m: Mode) {
 		mode = m;
 		showLeaderboard = false;
+		showStats = false;
 		reset();
 	}
 
 	function setTimeOption(t: number) {
 		timeOption = t;
 		showLeaderboard = false;
+		showStats = false;
 		reset();
 	}
 
 	function setWordsOption(w: number) {
 		wordsOption = w;
 		showLeaderboard = false;
+		showStats = false;
 		reset();
 	}
 
 	function toggleLeaderboard() {
 		showLeaderboard = !showLeaderboard;
+		showStats = false;
 		if (showLeaderboard) {
 			fetchLeaderboard();
 		}
 	}
+
+	function toggleStats() {
+		showStats = !showStats;
+		showLeaderboard = false;
+		if (showStats) {
+			fetchStats();
+		}
+	}
+
+	async function fetchStats() {
+		statsLoading = true;
+		try {
+			const [bestsRes, recentRes] = await Promise.all([
+				fetch('/api/scores/me?type=bests'),
+				fetch('/api/scores/me?type=recent')
+			]);
+			if (bestsRes.ok) statsBests = (await bestsRes.json()).scores;
+			if (recentRes.ok) statsRecent = (await recentRes.json()).scores;
+		} catch {
+			// non-critical
+		} finally {
+			statsLoading = false;
+		}
+	}
+
+	const modeLabels: Record<string, string> = { time: 'Time', words: 'Words', quote: 'Quote' };
+
+	function statsParamLabel(m: string, p: string | null): string {
+		if (m === 'quote') return 'Quote';
+		if (p == null) return m;
+		if (m === 'time') return `${p}s`;
+		return `${p} words`;
+	}
+
+	function statsFormatDate(iso: string): string {
+		return new Date(iso + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	}
+
+	function statsFormatDuration(seconds: number): string {
+		if (seconds < 60) return `${Math.round(seconds)}s`;
+		const m = Math.floor(seconds / 60);
+		const s = Math.round(seconds % 60);
+		return s > 0 ? `${m}m ${s}s` : `${m}m`;
+	}
+
+	const groupedBests = $derived.by(() => {
+		const groups: Record<string, PersonalScore[]> = {};
+		for (const s of statsBests) {
+			const label = modeLabels[s.mode] || s.mode;
+			if (!groups[label]) groups[label] = [];
+			groups[label].push(s);
+		}
+		return groups;
+	});
 
 	async function handleSubmitScore() {
 		if (scoreSubmitted !== 'idle') return;
@@ -355,6 +430,8 @@
 			<button class="mode-btn" class:active={mode === 'quote'} onclick={() => setMode('quote')}>quote</button>
 		</div>
 		<div class="mode-divider"></div>
+		<button class="mode-btn" class:active={showStats} onclick={toggleStats}>stats</button>
+		<div class="mode-divider"></div>
 		<button class="mode-btn" class:active={showLeaderboard} onclick={toggleLeaderboard}>leaderboard</button>
 		<div class="mode-divider"></div>
 		{#if mode === 'time'}
@@ -372,8 +449,8 @@
 		{/if}
 	</div>
 
-	<!-- Live stats (hidden when results or leaderboard shown) -->
-	{#if !finished && !showLeaderboard}
+	<!-- Live stats (hidden when results, leaderboard, or stats shown) -->
+	{#if !finished && !showLeaderboard && !showStats}
 		<div class="live-stats">
 			{#if mode === 'time'}
 				<span class="stat-value timer">{Math.ceil(timeLeft)}</span>
@@ -387,7 +464,72 @@
 		</div>
 	{/if}
 
-	{#if showLeaderboard}
+	{#if showStats}
+		<div class="stats-section">
+			<h2 class="leaderboard-title">Your Stats</h2>
+			{#if !authStore.loggedIn}
+				<p class="stats-message"><a href="/login">Log in</a> to see your stats</p>
+			{:else if statsLoading}
+				<p class="stats-message">Loading stats...</p>
+			{:else if statsBests.length === 0 && statsRecent.length === 0}
+				<p class="stats-message">No scores yet. Take a test!</p>
+			{:else}
+				{#if statsBests.length > 0}
+					<h3 class="stats-subtitle">Personal Bests</h3>
+					{#each Object.entries(groupedBests) as [modeGroup, scores]}
+						<span class="stats-mode-label">{modeGroup}</span>
+						<table class="stats-table">
+							<thead>
+								<tr>
+									<th>Mode</th>
+									<th>WPM</th>
+									<th>Accuracy</th>
+									<th>Date</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each scores as score (score.id)}
+									<tr>
+										<td>{statsParamLabel(score.mode, score.mode_param)}</td>
+										<td class="stats-wpm">{score.wpm}</td>
+										<td class="stats-acc">{score.accuracy}%</td>
+										<td class="stats-date">{statsFormatDate(score.created_at)}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/each}
+				{/if}
+				{#if statsRecent.length > 0}
+					<h3 class="stats-subtitle">Recent</h3>
+					<table class="stats-table">
+						<thead>
+							<tr>
+								<th>Date</th>
+								<th>Mode</th>
+								<th>WPM</th>
+								<th>Accuracy</th>
+								<th>Chars</th>
+								<th>Time</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each statsRecent as score (score.id)}
+								<tr>
+									<td class="stats-date">{statsFormatDate(score.created_at)}</td>
+									<td>{statsParamLabel(score.mode, score.mode_param)}</td>
+									<td class="stats-wpm">{score.wpm}</td>
+									<td class="stats-acc">{score.accuracy}%</td>
+									<td class="stats-date">{score.char_count}</td>
+									<td class="stats-date">{statsFormatDuration(score.elapsed_seconds)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
+			{/if}
+		</div>
+	{:else if showLeaderboard}
 		<div class="leaderboard-section">
 			<h2 class="leaderboard-title">Leaderboard</h2>
 			<Leaderboard scores={leaderboardScores} loading={leaderboardLoading} />
@@ -707,5 +849,84 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		margin-bottom: 12px;
+	}
+
+	.stats-section {
+		width: 100%;
+		margin-top: 16px;
+		padding: 20px;
+		background-color: var(--base02);
+		border: 1px solid var(--base01);
+		border-radius: var(--radius-lg);
+	}
+
+	.stats-message {
+		font-size: 0.85rem;
+		color: var(--base00);
+		text-align: center;
+		padding: 24px 0;
+	}
+
+	.stats-message a {
+		color: var(--blue);
+	}
+
+	.stats-subtitle {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--base1);
+		margin: 16px 0 8px;
+	}
+
+	.stats-subtitle:first-of-type {
+		margin-top: 0;
+	}
+
+	.stats-mode-label {
+		display: block;
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: var(--base00);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin: 12px 0 4px;
+	}
+
+	.stats-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.85rem;
+		margin-bottom: 4px;
+	}
+
+	.stats-table th {
+		text-align: left;
+		padding: 6px 10px;
+		font-weight: 600;
+		color: var(--base00);
+		border-bottom: 2px solid var(--base01);
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.stats-table td {
+		padding: 6px 10px;
+		border-bottom: 1px solid var(--base01);
+	}
+
+	.stats-wpm {
+		font-family: 'Courier Prime', 'Courier New', monospace;
+		font-weight: 700;
+		color: var(--base1);
+	}
+
+	.stats-acc {
+		color: var(--base00);
+	}
+
+	.stats-date {
+		color: var(--base00);
+		font-size: 0.8rem;
 	}
 </style>

@@ -11,6 +11,9 @@ pnpm build      # Node server → build/
 node build      # run production server
 pnpm preview    # preview production build
 pnpm check      # type-check
+
+# Deploy (build + restart service)
+pnpm build && sudo systemctl restart typeart
 ```
 
 Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On Linux, install udev rules: `sudo cp static/99-typeart.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules`.
@@ -257,7 +260,9 @@ static/
     ├── index.json                   # Registry: [{name, path, vendorId, productId, firmware?}]
     ├── space65r3/definition.json    # Graystudio Space65 R3 (0x4753:0x3003)
     ├── lux40v2/definition.json     # Lux40v2 (0x4C4D:0x0001, 4×14, 1 encoder)
-    └── lux36/definition.json       # Lux36 (0x4C4D:0x0002, 4×11, QAZ-style 36-key)
+    ├── lux36/definition.json       # Lux36 (0x4C4D:0x0002, 4×11, QAZ-style 36-key)
+    ├── bakeneko65/definition.json  # Bakeneko 65 V3 (0x3A0E:0x4C83, 5×16, 65% with layout options)
+    └── instant65/definition.json   # CannonKeys Instant65 (0xCA04:0x1565, 5×15, hotswap 65%)
 ```
 
 ## Adding a Keyboard Definition
@@ -297,6 +302,24 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 | @node-rs/argon2 | 2.x | Argon2id password hashing |
 | pnpm | 10.x | Package manager |
 
+## Deployment
+
+Production runs on a Raspberry Pi 5 (NVMe SSD) behind nginx + Cloudflare Tunnel (`typeart.co`).
+
+```bash
+pnpm build && sudo systemctl restart typeart
+```
+
+**Always restart after building.** SvelteKit adapter-node lazy-loads server chunks by hashed filename. If you rebuild without restarting, the running Node process still references the old `manifest.js` with old chunk hashes. Any route not yet loaded will 500 with `ERR_MODULE_NOT_FOUND`. Routes that happened to be loaded before the build will appear to work, making the site look "half broken".
+
+| Component | Config |
+|---|---|
+| Node server | `systemd` service on port 3000, `SHUTDOWN_TIMEOUT=3`, `TimeoutStopSec=10` |
+| Reverse proxy | nginx on port 80, proxies to 3000, adds security headers |
+| Tunnel | Cloudflare Tunnel → nginx → Node |
+| Database | SQLite WAL mode, `db.close()` on SIGTERM/SIGINT/sveltekit:shutdown |
+| Backups | Daily cron at 3 AM (`scripts/backup-db.sh`), WAL-safe `.backup`, 7-day retention |
+
 ## Known Limitations
 
 - **No macro editor** — macros display as M(0)–M(15) but no UI to edit sequences
@@ -309,6 +332,34 @@ Matrix position `"row,col"` in KLE legend 0. Layout options `"group,choice"` in 
 - **Game page hidden** — Asteroid Run (`/game`) removed from nav and home page, route still exists for future rework
 
 ## Roadmap
+
+### To Do
+
+**Critical — Blocks Purchasing**
+- [ ] **Checkout & payment** — Stripe integration, shipping address collection, tax calculation, order confirmation flow
+- [ ] **Product images** — Real product photos, gallery with zoom (currently solid-color placeholders)
+- [ ] **Order status management** — Admin ability to update status (confirmed/shipped/delivered), tracking numbers, shipping notification emails
+
+**High — Trust & Discoverability**
+- [ ] **Shipping & return policy page** — Delivery timeframes, return window, refund process
+- [ ] **FAQ page** — Common questions about keyboards, shipping, compatibility
+- [ ] **Email verification** — Confirm email on registration before allowing orders
+- [ ] **SEO metadata** — Meta descriptions, Open Graph tags, Twitter Cards, JSON-LD structured data for products, sitemap.xml
+- [ ] **Product specs** — Dimensions, weight, materials, switch compatibility, what's included
+
+**Medium — User Experience**
+- [ ] **Store search & filtering** — Search bar, category filtering, sort by price/name
+- [ ] **Stock & inventory status** — In stock / out of stock indicators, backorder support
+- [ ] **Product reviews & ratings** — User-submitted reviews with star ratings
+- [ ] **Welcome email** — Send on registration after email verification
+- [ ] **Accessibility** — Skip-to-content link, ARIA labels on all interactive elements, aria-live regions for dynamic updates, focus trapping in modals
+
+**Low — Nice to Have**
+- [ ] **About page** — Brand story, team, mission
+- [ ] **Related products / cross-sells** — "Customers also bought" on product pages
+- [ ] **Wishlist** — Save products for later
+- [ ] **PWA support** — Service worker, offline mode, "Add to Home Screen"
+- [ ] **Order cancellation** — User-initiated cancellation for pending orders
 
 ### Done
 

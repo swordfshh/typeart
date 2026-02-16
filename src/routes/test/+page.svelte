@@ -223,6 +223,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Matrix Test — TypeArt</title>
+</svelte:head>
+
 <div class="test-page">
 	<ConnectionStatus />
 

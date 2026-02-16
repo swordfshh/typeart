@@ -342,6 +342,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Typing Test — TypeArt</title>
+</svelte:head>
+
 <div class="typing-test">
 	<!-- Mode selector -->
 	<div class="mode-bar">

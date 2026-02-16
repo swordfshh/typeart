@@ -92,6 +92,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Configure — TypeArt</title>
+</svelte:head>
+
 <div class="configure-page">
 	<ConnectionStatus />
 

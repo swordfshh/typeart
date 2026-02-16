@@ -11,6 +11,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Cart — TypeArt</title>
+</svelte:head>
+
 <div class="cart-page">
 	<h1>Cart</h1>
 

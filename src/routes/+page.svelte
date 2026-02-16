@@ -22,7 +22,7 @@
 	{/if}
 
 	<div class="cards">
-		<a href="/store" class="card card-full">
+		<a href="/store" class="card">
 			<h2>Store</h2>
 			<p>Browse and order TypeArt keyboard kits</p>
 		</a>
@@ -30,17 +30,13 @@
 			<h2>Configure</h2>
 			<p>Connect your keyboard and edit keymaps live</p>
 		</a>
-		<a href="/test" class="card">
-			<h2>Matrix Test</h2>
-			<p>Test key switches with real-time matrix visualization</p>
-		</a>
 		<a href="/type" class="card">
 			<h2>Typing Test</h2>
 			<p>Measure your typing speed with time, words, and quote modes</p>
 		</a>
-		<a href="/game" class="card card-full">
-			<h2>Asteroid Run</h2>
-			<p>Dodge asteroids by typing — your speed steers the ship</p>
+		<a href="/test" class="card">
+			<h2>Matrix Test</h2>
+			<p>Test key switches with real-time matrix visualization</p>
 		</a>
 	</div>
 </div>
@@ -141,9 +137,13 @@
 		display: block;
 		padding: 24px;
 		background: var(--base02);
-		border: 1.33px solid var(--base01);
+		border: 2px solid var(--base01);
 		border-radius: var(--radius-lg);
 		transition: box-shadow 100ms ease;
+	}
+
+	:global([data-theme="miami-nights"]) .card {
+		border-width: 1.33px;
 	}
 
 	.card:hover {
@@ -165,10 +165,6 @@
 		background:
 			linear-gradient(var(--base02), var(--base02)) padding-box,
 			linear-gradient(to right, #ffdb58, #e8a735, #ba1312, #5991ae, #69d0a5) border-box !important;
-	}
-
-	.card-full {
-		grid-column: 1 / -1;
 	}
 
 	.card h2 {

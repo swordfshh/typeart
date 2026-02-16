@@ -49,6 +49,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Orders — TypeArt</title>
+</svelte:head>
+
 <div class="orders-page">
 	<h1>Orders</h1>
 

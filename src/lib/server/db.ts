@@ -97,3 +97,17 @@ function createDb(): Database.Database {
 }
 
 export const db = createDb();
+
+// Close DB when SvelteKit's adapter-node finishes its graceful shutdown.
+// Also handle SIGTERM/SIGINT directly in case sveltekit:shutdown doesn't fire.
+if (!building) {
+	let closed = false;
+	function closeDb() {
+		if (closed) return;
+		closed = true;
+		try { db.close(); } catch {}
+	}
+	process.on('sveltekit:shutdown', closeDb);
+	process.on('SIGTERM', closeDb);
+	process.on('SIGINT', closeDb);
+}

@@ -32,6 +32,27 @@
 	--shadow-md: 0 4px 12px rgba(90, 70, 40, 0.18);
 }
 
+/* Retro Beige — explicit override (matches :root defaults) */
+[data-theme="retro-beige"] {
+	--base03: #E8DCC6;
+	--base02: #F2EAD8;
+	--base01: #C4B396;
+	--base00: #8A7A5F;
+	--base0: #4D3F2A;
+	--base1: #2A1E0E;
+	--yellow: #FDB827;
+	--orange: #F5821F;
+	--red: #E03A3E;
+	--magenta: #D44D9E;
+	--violet: #963D97;
+	--blue: #009DDC;
+	--cyan: #1BA8A0;
+	--green: #61BB46;
+	--on-accent: #fff;
+	--shadow-sm: 0 1px 3px rgba(90, 70, 40, 0.12);
+	--shadow-md: 0 4px 12px rgba(90, 70, 40, 0.18);
+}
+
 /* Miami Nights — dark indigo + neon cyan/pink */
 [data-theme="miami-nights"] {
 	--base03: #0f0e17;

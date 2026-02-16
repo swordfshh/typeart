@@ -4,6 +4,10 @@
 	let { data } = $props();
 </script>
 
+<svelte:head>
+	<title>Store — TypeArt</title>
+</svelte:head>
+
 <div class="store">
 	<div class="store-header">
 		<h1>Store</h1>

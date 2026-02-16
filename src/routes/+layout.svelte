@@ -20,6 +20,7 @@
 	});
 
 	let accountOpen = $state(false);
+	let menuOpen = $state(false);
 
 	function toggleAccount() {
 		accountOpen = !accountOpen;
@@ -27,6 +28,14 @@
 
 	function closeAccount() {
 		accountOpen = false;
+	}
+
+	function toggleMenu() {
+		menuOpen = !menuOpen;
+	}
+
+	function closeMenu() {
+		menuOpen = false;
 	}
 
 	function handleAccountKeydown(e: KeyboardEvent) {
@@ -45,6 +54,9 @@
 			if (!target.closest('.account-menu')) {
 				accountOpen = false;
 			}
+			if (!target.closest('.mobile-menu') && !target.closest('.hamburger')) {
+				menuOpen = false;
+			}
 		}
 		document.addEventListener('click', handleClickOutside);
 		return () => document.removeEventListener('click', handleClickOutside);
@@ -59,6 +71,7 @@
 			<a href="/configure">Configure</a>
 			<a href="/test">Test</a>
 			<a href="/type">Type</a>
+			<a href="/stats">Stats</a>
 			<a href="/store">Store</a>
 			<a href="/store/cart" class="cart-link">Cart<CartBadge count={cartStore.totalItems} /></a>
 			{#if authStore.loggedIn}
@@ -79,11 +92,45 @@
 				<a href="/login" class="auth-btn">Log in</a>
 			{/if}
 		</div>
+		<div class="mobile-controls">
+			<a href="/store/cart" class="mobile-cart">Cart<CartBadge count={cartStore.totalItems} /></a>
+			<button class="hamburger" class:open={menuOpen} onclick={toggleMenu} aria-label="Menu">
+				<span></span><span></span><span></span>
+			</button>
+		</div>
 	</nav>
+	{#if menuOpen}
+		<div class="mobile-menu">
+			<a href="/configure" onclick={closeMenu}>Configure</a>
+			<a href="/test" onclick={closeMenu}>Test</a>
+			<a href="/type" onclick={closeMenu}>Type</a>
+			<a href="/stats" onclick={closeMenu}>Stats</a>
+			<a href="/store" onclick={closeMenu}>Store</a>
+			<a href="/store/cart" onclick={closeMenu}>Cart</a>
+			{#if authStore.loggedIn}
+				<a href="/orders" onclick={closeMenu}>Orders</a>
+				<button onclick={() => { closeMenu(); authStore.logout(); }}>Log out</button>
+			{:else}
+				<a href="/login" onclick={closeMenu}>Log in</a>
+			{/if}
+			<button class="mobile-theme-btn" onclick={() => themeStore.toggle()}>{themeLabel}</button>
+		</div>
+	{/if}
 
 	<main class="content">
 		{@render children()}
 	</main>
+
+	<footer class="site-footer">
+		<div class="footer-inner">
+			<span class="copyright">&copy; 2026 TypeArt</span>
+			<nav class="footer-links">
+				<a href="/privacy">Privacy</a>
+				<a href="/terms">Terms</a>
+				<a href="mailto:hello@typeart.co">Contact</a>
+			</nav>
+		</div>
+	</footer>
 </div>
 
 <style>
@@ -158,6 +205,18 @@
 			linear-gradient(135deg, #0AD2D3, #B537F2, #FF2E97) border-box;
 		color: var(--base0);
 		transition: filter 150ms ease;
+	}
+
+	:global([data-theme="retro-beige"]) .theme-btn {
+		border-width: 2px;
+		background: linear-gradient(var(--base02), var(--base02)) padding-box,
+			linear-gradient(135deg, #e0453b, #e87d2a, #d4a81e, #54a648, #339cc5, #7058b8, #a8449e) border-box;
+	}
+
+	:global([data-theme="godspeed"]) .theme-btn {
+		border-width: 2px;
+		background: linear-gradient(var(--base02), var(--base02)) padding-box,
+			linear-gradient(135deg, #ffdb58, #e8a735, #ba1312, #5991ae, #69d0a5) border-box;
 	}
 
 	.theme-btn:hover {
@@ -263,5 +322,151 @@
 	.auth-btn:hover {
 		filter: brightness(1.1);
 		text-decoration: none;
+	}
+
+	.site-footer {
+		border-top: 1px solid var(--base01);
+		padding: 16px 24px;
+		flex-shrink: 0;
+	}
+
+	.footer-inner {
+		max-width: 720px;
+		margin: 0 auto;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.75rem;
+		color: var(--base00);
+	}
+
+	.footer-links {
+		display: flex;
+		gap: 16px;
+	}
+
+	.footer-links a {
+		color: var(--base00);
+		font-size: 0.75rem;
+	}
+
+	.footer-links a:hover {
+		color: var(--base0);
+		text-decoration: none;
+	}
+
+	/* Mobile controls — hidden on desktop */
+	.mobile-controls {
+		display: none;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.mobile-cart {
+		display: inline-flex;
+		align-items: center;
+		color: var(--base0);
+		font-size: 0.875rem;
+		font-weight: 500;
+	}
+
+	.mobile-cart:hover {
+		color: var(--base1);
+		text-decoration: none;
+	}
+
+	.hamburger {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 4px;
+		width: 28px;
+		height: 28px;
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+	}
+
+	.hamburger span {
+		display: block;
+		width: 20px;
+		height: 2px;
+		background-color: var(--base0);
+		border-radius: 1px;
+		transition: transform 200ms ease, opacity 200ms ease;
+	}
+
+	.hamburger.open span:nth-child(1) {
+		transform: translateY(6px) rotate(45deg);
+	}
+
+	.hamburger.open span:nth-child(2) {
+		opacity: 0;
+	}
+
+	.hamburger.open span:nth-child(3) {
+		transform: translateY(-6px) rotate(-45deg);
+	}
+
+	.mobile-menu {
+		display: none;
+	}
+
+	@media (max-width: 639px) {
+		.nav-links {
+			display: none !important;
+		}
+
+		.mobile-controls {
+			display: flex;
+		}
+
+		.mobile-menu {
+			display: flex;
+			flex-direction: column;
+			background-color: var(--base02);
+			border-bottom: 1px solid var(--base01);
+			padding: 8px 0;
+		}
+
+		.mobile-menu a,
+		.mobile-menu button {
+			padding: 12px 24px;
+			font-size: 0.875rem;
+			font-weight: 500;
+			color: var(--base0);
+			background: none;
+			border: none;
+			text-align: left;
+			font-family: inherit;
+			cursor: pointer;
+			transition: background-color 100ms ease;
+		}
+
+		.mobile-menu a:hover,
+		.mobile-menu button:hover {
+			background-color: var(--base03);
+			color: var(--base1);
+			text-decoration: none;
+		}
+
+		.mobile-theme-btn {
+			border-top: 1px solid var(--base01);
+			margin-top: 4px;
+			padding-top: 12px !important;
+			color: var(--base00) !important;
+			font-size: 0.8rem !important;
+		}
+
+		.footer-inner {
+			flex-direction: column;
+			gap: 8px;
+			text-align: center;
+		}
+
+		.content {
+			padding: 16px;
+		}
 	}
 </style>

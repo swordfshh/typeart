@@ -82,6 +82,10 @@
 	};
 </script>
 
+<svelte:head>
+	<title>Order #{page.params.id.slice(0, 8)} — TypeArt</title>
+</svelte:head>
+
 <div class="order-detail">
 	{#if loading}
 		<p class="loading">Loading order...</p>

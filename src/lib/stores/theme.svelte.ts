@@ -4,7 +4,7 @@ const STORAGE_KEY = 'typeart-theme';
 const THEMES: Theme[] = ['retro-beige', 'miami-nights', 'godspeed'];
 
 class ThemeStore {
-	current: Theme = $state('retro-beige');
+	current: Theme = $state('miami-nights');
 
 	toggle(): void {
 		const idx = THEMES.indexOf(this.current);
@@ -34,11 +34,7 @@ class ThemeStore {
 
 	private apply(): void {
 		if (typeof document === 'undefined') return;
-		if (this.current === 'retro-beige') {
-			document.documentElement.removeAttribute('data-theme');
-		} else {
-			document.documentElement.setAttribute('data-theme', this.current);
-		}
+		document.documentElement.setAttribute('data-theme', this.current);
 	}
 
 	private persist(): void {

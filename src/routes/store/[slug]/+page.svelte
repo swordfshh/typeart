@@ -41,6 +41,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{product.name} — TypeArt</title>
+</svelte:head>
+
 <div class="product-detail">
 	<a href="/store" class="back-link">&larr; Back to Store</a>
 

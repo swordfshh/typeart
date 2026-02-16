@@ -105,7 +105,7 @@
 
 	{#if !deviceStore.isConnected && definitionStore.registry.length > 0}
 		<div class="definition-selector">
-			<p class="hint">Or load a keyboard definition to browse offline. VIA firmware available for <span class="hint-dl">download</span> for highlighted boards.</p>
+			<p class="hint">Or browse our boards — designed and built by TypeArt. VIA firmware available for <span class="hint-dl">download</span>.</p>
 			<div class="def-list">
 				{#each definitionStore.registry as entry}
 					<button class="def-btn" class:has-firmware={!!entry.firmware} onclick={() => handleManualLoad(entry.path)}>

@@ -22,7 +22,7 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 
 | Route | Purpose |
 |---|---|
-| `/` | Landing — rainbow-lettered logo, WebHID check, 2×2 nav cards (Store · Configure · Typing Test · Matrix Test) |
+| `/` | Landing — rainbow-lettered logo, 2×2 nav cards (Store · Configure · Typing Test · Matrix Test) |
 | `/store` | Product grid — keyboard kits with detail pages, variant selection, cart with localStorage |
 | `/configure` | Live keymap editor — connect keyboard, auto-detect definition, click-to-reassign keys, always-visible keycode picker with search/categories/LT-MT builder/"Any" key input |
 | `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
@@ -88,7 +88,7 @@ QMK Keyboard firmware
 
 - **`types.ts`** — `KeyboardDefinition` (VIA v3 JSON), `ParsedKey` (position/size/rotation/matrix-coords/encoder), `EncoderDefinition`
 - **`kle-parser.ts`** — `parseKLELayout(rows)` converts KLE JSON → `ParsedKey[]`; `filterKeysByLayoutOptions()` filters by layout choices
-- **`definition.ts`** — fetch registry, load definitions, match by VID/PID (strips `0x` prefix, case-insensitive hex compare)
+- **`definition.ts`** — fetch registry, load definitions, match by VID/PID (strips `0x` prefix, case-insensitive hex compare). Falls back to VIA's online library (usevia.app) for keyboards not in the local registry, converting pre-parsed key data to `ParsedKey[]`
 
 ### Keycodes — `src/lib/keycodes/`
 
@@ -256,12 +256,9 @@ static/
 │   ├── lux40v2_via.bin             # VIA-enabled QMK firmware for Lux40v2
 │   └── lux36_via.bin               # VIA-enabled QMK firmware for Lux36
 └── keyboards/
-    ├── index.json                   # Registry: [{name, path, vendorId, productId, firmware?}]
-    ├── space65r3/definition.json    # Graystudio Space65 R3 (0x4753:0x3003)
+    ├── index.json                   # Registry: TypeArt boards [{name, path, vendorId, productId, firmware?}]
     ├── lux40v2/definition.json     # Lux40v2 (0x4C4D:0x0001, 4×14, 1 encoder)
-    ├── lux36/definition.json       # Lux36 (0x4C4D:0x0002, 4×11, QAZ-style 36-key)
-    ├── bakeneko65/definition.json  # Bakeneko 65 V3 (0x3A0E:0x4C83, 5×16, 65% with layout options)
-    └── instant65/definition.json   # CannonKeys Instant65 (0xCA04:0x1565, 5×15, hotswap 65%)
+    └── lux36/definition.json       # Lux36 (0x4C4D:0x0002, 4×11, QAZ-style 36-key)
 ```
 
 ## Adding a Keyboard Definition
@@ -374,6 +371,13 @@ pnpm build && sudo systemctl restart typeart
 ## Changelog
 
 ### 2026-02-16
+
+**VIA definition library**
+- Configure and matrix tester now support any VIA-compatible keyboard via online fallback to usevia.app (~1,500+ definitions)
+- Local VID/PID lookup tried first; on miss, fetches pre-parsed definition from `https://usevia.app/definitions/v3/{vpid}.json` (falls back to v2)
+- Converts VIA's pre-built `keys`/`optionKeys` format to TypeArt's `ParsedKey[]` directly, skipping KLE parsing
+- Local keyboard registry trimmed to TypeArt original boards only (Lux40v2, Lux36)
+- Removed redundant WebHID warning from home page (already shown on configure/test pages)
 
 **Security hardening II**
 - Password change endpoint (`POST /api/auth/change-password`): verifies current password, updates hash, invalidates all other sessions, rate limited (5/15min)

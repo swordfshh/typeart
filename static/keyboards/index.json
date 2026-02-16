@@ -1,11 +1,5 @@
 [
 	{
-		"name": "GrayStudio Space65 R3",
-		"path": "space65r3",
-		"vendorId": "0x4753",
-		"productId": "0x3003"
-	},
-	{
 		"name": "Lux40v2",
 		"path": "lux40v2",
 		"vendorId": "0x4C4D",
@@ -20,17 +14,5 @@
 		"productId": "0x0002",
 		"firmware": "/firmware/lux36_via.bin",
 		"firmwareSha256": "9c4e2204ae82eefc939335d931fe9ebadbcd0741c92d793c4f0202e03ae864b7"
-	},
-	{
-		"name": "Bakeneko 65 V3",
-		"path": "bakeneko65",
-		"vendorId": "0x3A0E",
-		"productId": "0x4C83"
-	},
-	{
-		"name": "Instant65",
-		"path": "instant65",
-		"vendorId": "0xca04",
-		"productId": "0x1565"
 	}
 ]

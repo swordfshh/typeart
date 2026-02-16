@@ -1,25 +1,8 @@
-<script lang="ts">
-	const isWebHIDSupported = typeof navigator !== 'undefined' && 'hid' in navigator;
-</script>
-
 <div class="home">
 	<div class="hero">
 		<h1><span class="r1">T</span><span class="r2">y</span><span class="r3">p</span><span class="r4">e</span><span class="r5">A</span><span class="r6">r</span><span class="r7">t</span></h1>
 		<p class="subtitle">Live keymap editor for custom QMK keyboards</p>
 	</div>
-
-	{#if !isWebHIDSupported}
-		<div class="warning-card">
-			<span class="warning-icon">!</span>
-			<div>
-				<strong>WebHID not available</strong>
-				<p>
-					This app requires WebHID, which is only supported in Chrome and Edge.
-					Please open this page in a compatible browser.
-				</p>
-			</div>
-		</div>
-	{/if}
 
 	<div class="cards">
 		<a href="/store" class="card">
@@ -88,41 +71,6 @@
 	.subtitle {
 		margin-top: 8px;
 		font-size: 1.125rem;
-		color: var(--base00);
-	}
-
-	.warning-card {
-		display: flex;
-		align-items: flex-start;
-		gap: 12px;
-		padding: 16px;
-		background-color: var(--base02);
-		border: 1px solid var(--orange);
-		border-radius: var(--radius-md);
-		margin-bottom: 32px;
-	}
-
-	.warning-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 24px;
-		height: 24px;
-		background-color: var(--orange);
-		color: var(--on-accent);
-		border-radius: 50%;
-		font-weight: 700;
-		font-size: 0.875rem;
-		flex-shrink: 0;
-	}
-
-	.warning-card strong {
-		color: var(--orange);
-	}
-
-	.warning-card p {
-		margin-top: 4px;
-		font-size: 0.875rem;
 		color: var(--base00);
 	}
 

@@ -3,10 +3,9 @@
  * Holds the active keyboard definition, parsed layout, and layout options.
  */
 
-import type { KeyboardDefinition, ParsedKey, LayoutOption } from '../keyboard/types.js';
+import type { KeyboardDefinition, KeyboardRegistryEntry, ParsedKey, LayoutOption } from '../keyboard/types.js';
 import { parseKLELayout, filterKeysByLayoutOptions } from '../keyboard/kle-parser.js';
 import { getLayoutOptions, findDefinitionForDevice, fetchKeyboardDefinition, fetchKeyboardRegistry } from '../keyboard/definition.js';
-import type { KeyboardRegistryEntry } from '../keyboard/types.js';
 
 class DefinitionStore {
 	/** Current keyboard definition */
@@ -126,7 +125,7 @@ class DefinitionStore {
 		try {
 			const result = await findDefinitionForDevice(vendorId, productId);
 			if (!result) return false;
-			this.setDefinition(result.definition);
+			this.setDefinition(result.definition, result.parsedKeys);
 			return true;
 		} finally {
 			this.loading = false;
@@ -153,9 +152,9 @@ class DefinitionStore {
 		this.loading = false;
 	}
 
-	private setDefinition(definition: KeyboardDefinition): void {
+	private setDefinition(definition: KeyboardDefinition, parsedKeys?: ParsedKey[]): void {
 		this.definition = definition;
-		this.allKeys = parseKLELayout(definition.layouts.keymap);
+		this.allKeys = parsedKeys ?? parseKLELayout(definition.layouts.keymap);
 		this.layoutOptions = getLayoutOptions(definition);
 		this.layoutOptionValues = this.layoutOptions.map(() => 0);
 	}

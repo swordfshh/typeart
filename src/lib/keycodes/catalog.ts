@@ -22,7 +22,7 @@ function kc(code: number, name: string, label: string, shortLabel?: string): Key
 
 // ─── Basic ──────────────────────────────────────────────────────────────────
 
-export const BASIC_KEYCODES: KeycodeEntry[] = [
+const BASIC_KEYCODES: KeycodeEntry[] = [
 	// Special
 	kc(0x0000, 'KC_NO', 'None', ''),
 	kc(0x0001, 'KC_TRANSPARENT', 'Trans', '▽'),
@@ -156,7 +156,7 @@ export const BASIC_KEYCODES: KeycodeEntry[] = [
 // ─── Media / System / Consumer ──────────────────────────────────────────────
 // Codes match VIA's key-to-byte mapping
 
-export const MEDIA_KEYCODES: KeycodeEntry[] = [
+const MEDIA_KEYCODES: KeycodeEntry[] = [
 	// System
 	kc(0x00a5, 'KC_SYSTEM_POWER', 'Sys Power', 'Pwr'),
 	kc(0x00a6, 'KC_SYSTEM_SLEEP', 'Sys Sleep', 'Slp'),
@@ -198,7 +198,7 @@ export const MEDIA_KEYCODES: KeycodeEntry[] = [
 
 // ─── Macro ──────────────────────────────────────────────────────────────────
 
-export const MACRO_KEYCODES: KeycodeEntry[] = Array.from({ length: 16 }, (_, i) =>
+const MACRO_KEYCODES: KeycodeEntry[] = Array.from({ length: 16 }, (_, i) =>
 	kc(0x7700 + i, `MACRO_${i}`, `Macro ${i}`, `M${i}`)
 );
 
@@ -222,11 +222,11 @@ function generateLayerKeycodes(): KeycodeEntry[] {
 	return entries;
 }
 
-export const LAYER_KEYCODES = generateLayerKeycodes();
+const LAYER_KEYCODES = generateLayerKeycodes();
 
 // ─── Special ────────────────────────────────────────────────────────────────
 
-export const SPECIAL_KEYCODES: KeycodeEntry[] = [
+const SPECIAL_KEYCODES: KeycodeEntry[] = [
 	// Grave Escape
 	kc(0x5c16, 'QK_GESC', 'Grave Escape', 'GEsc'),
 
@@ -303,7 +303,7 @@ export const SPECIAL_KEYCODES: KeycodeEntry[] = [
 
 // ─── Lighting ───────────────────────────────────────────────────────────────
 
-export const LIGHTING_KEYCODES: KeycodeEntry[] = [
+const LIGHTING_KEYCODES: KeycodeEntry[] = [
 	// Backlight
 	kc(0x5100, 'BL_TOGG', 'BL Toggle', 'BLTg'),
 	kc(0x5101, 'BL_STEP', 'BL Step', 'BLSt'),

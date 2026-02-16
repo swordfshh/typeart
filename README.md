@@ -92,7 +92,7 @@ QMK Keyboard firmware
 
 ### Keycodes — `src/lib/keycodes/`
 
-- **`ranges.ts`** — QMK range constants including `QK_GRAVE_ESCAPE` (0x5C16), Space Cadet (0x5C56–0x5C5B)
+- **`ranges.ts`** — QMK keycode range constants (layer tap, mod tap, momentary, toggle, etc.)
 - **`catalog.ts`** — **~216 keycodes** across **6 categories**: Basic (letters/numbers/punctuation/modifiers/nav/F-keys/numpad), Media (corrected VIA consumer range 0xA5–0xBE), Macro (M0–M15), Layers (MO/TG/TO/TT/OSL/DF for 0–15), Special (Grave Escape, Space Cadet, shifted symbols, F13–F24, mouse keys, quantum), Lighting (backlight + RGB)
 - **`labels.ts`** — `getKeycodeLabel(keycode)` handles catalog lookup → parameterized ranges (LT/MT/MO/TG/LM/etc) → hex fallback
 - **`parser.ts`** — QMK string parser for "Any" key input. Supports hex literals, named keycodes with aliases (KC_SPC→KC_SPACE etc.), LT(), MT(), MO(), TG(), TO(), TT(), OSL(), DF(), OSM()
@@ -203,7 +203,6 @@ src/
 │   │   ├── email.ts                # Email service (Resend) — password reset, order confirmation
 │   │   └── security-log.ts         # Security event logger (login, lockout, password change, deletion)
 │   └── utils/
-│       ├── bytes.ts                 # readUint16BE, writeUint16BE, toHex
 │       └── export.ts                # exportKeymap, parseImportedKeymap, downloadJson
 ├── components/
 │   ├── Key.svelte                   # Single key (absolute position, label, states)
@@ -329,7 +328,6 @@ pnpm build && sudo systemctl restart typeart
 - **Import writes key-by-key** — could use `DynamicKeymapSetBuffer` for bulk writes
 - **Single device** — one keyboard at a time
 - **No payment processing** — checkout disabled pending payment gateway integration
-- **Game page hidden** — Asteroid Run (`/game`) removed from nav and home page, route still exists for future rework
 
 ## Roadmap
 

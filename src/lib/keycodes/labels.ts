@@ -124,16 +124,3 @@ export function getKeycodeLabel(keycode: number): string {
 	// Fallback: hex display
 	return `0x${keycode.toString(16).padStart(4, '0')}`;
 }
-
-/**
- * Get both short and long labels for a keycode.
- */
-export function getKeycodeLabels(keycode: number): { short: string; long: string } {
-	const entry = getKeycodeEntry(keycode);
-	if (entry) {
-		return { short: entry.shortLabel, long: entry.label };
-	}
-
-	const label = getKeycodeLabel(keycode);
-	return { short: label, long: label };
-}

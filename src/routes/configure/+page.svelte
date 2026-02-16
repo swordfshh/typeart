@@ -194,6 +194,7 @@
 			<p>Connect a VIA-compatible keyboard to start editing keymaps.</p>
 		</div>
 	{/if}
+	<p class="attribution">Built on <a href="https://qmk.fm" target="_blank" rel="noopener">QMK</a> and <a href="https://usevia.app" target="_blank" rel="noopener">VIA</a></p>
 </div>
 
 <style>
@@ -346,6 +347,17 @@
 	.empty-state {
 		text-align: center;
 		padding: 48px;
+		color: var(--base00);
+	}
+
+	.attribution {
+		text-align: center;
+		font-size: 0.75rem;
+		color: var(--base01);
+		margin-top: 8px;
+	}
+
+	.attribution a {
 		color: var(--base00);
 	}
 </style>

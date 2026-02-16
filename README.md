@@ -2,6 +2,8 @@
 
 Keyboard-first e-commerce store with built-in live keymap editor and matrix tester. Connect a VIA-enabled QMK keyboard over WebHID, visualize the layout, reassign keys from a searchable picker, and flash changes instantly — all in the browser.
 
+Built on [QMK](https://qmk.fm) (open-source keyboard firmware) and [VIA](https://usevia.app) (keyboard configuration protocol and definition library).
+
 ## Quick Start
 
 ```bash

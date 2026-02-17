@@ -350,7 +350,7 @@ pnpm build && sudo systemctl restart typeart
 
 **Critical — Blocks Purchasing**
 - [x] **Checkout & payment** — Stripe Checkout (hosted), webhook-confirmed orders, confirmation emails
-- [ ] **Shipping address collection** — Capture shipping details during checkout, tax calculation
+- [x] **Shipping address collection** — Stripe Checkout collects US shipping address, stored in DB, shown on order detail + confirmation email
 - [x] **Product images** — Real product photos with gallery and thumbnail strip (zoom TBD)
 - [ ] **Order status management** — Admin ability to update status (confirmed/shipped/delivered), tracking numbers, shipping notification emails
 
@@ -389,10 +389,17 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 10 — Product Photos & Pricing**: Real product photos with image gallery, color surcharge system (ColorOption type, end-to-end pricing), stabilizer pricing, server-side price validation for all options, kiosk stats dashboard
 - [x] **Phase 11 — Stripe Checkout**: Stripe Checkout (hosted) integration, webhook-confirmed orders with signature verification, idempotent payment processing, stale pending order cleanup, Miami Nights logo exports
 - [x] **Phase 12 — Checkout Security Hardening**: Webhook event deduplication (prevents duplicate emails/replay attacks), atomic payment transaction, payment_status validation, dispute/failure/expiry webhook handlers, Stripe secret startup validation, CSP connect-src fix for Stripe domains
+- [x] **Phase 13 — Shipping & Kit Acknowledgment**: Stripe Checkout collects US shipping address, webhook stores in DB, displayed on order detail/success pages and confirmation email, kit acknowledgment checkbox on product page
 
 ## Changelog
 
 ### 2026-02-17
+
+**Shipping address collection & kit acknowledgment**
+- Stripe Checkout now collects US shipping address (`shipping_address_collection: { allowed_countries: ['US'] }`)
+- Webhook extracts `session.shipping_details`, stores in 7 new columns on `orders` table (name, line1, line2, city, state, postal_code, country)
+- Shipping address displayed on order detail page, checkout success page, and order confirmation email
+- Product detail page: "Add to Cart" disabled until kit acknowledgment checkbox is checked — "This is a kit — I'll provide my own switches and keycaps"
 
 **Checkout security hardening**
 - Webhook event deduplication: new `webhook_events` table tracks processed Stripe event IDs, preventing duplicate confirmation emails from webhook replays or concurrent deliveries

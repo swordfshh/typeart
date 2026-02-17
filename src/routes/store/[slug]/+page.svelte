@@ -22,6 +22,7 @@
 	let selectedStabIndex = $state(0);
 	let wristRest = $state(false);
 	let added = $state(false);
+	let kitAcknowledged = $state(false);
 	let activeImage = $state(0);
 
 	const images = $derived(
@@ -118,11 +119,15 @@
 						<span>Add wrist rest (+${product.wristRestPrice.toFixed(2)})</span>
 					</label>
 				{/if}
+				<label class="kit-acknowledge">
+					<input type="checkbox" bind:checked={kitAcknowledged} />
+					<span>This is a kit — I'll provide my own switches and keycaps</span>
+				</label>
 			</div>
 
 			<div class="price-row">
 				<span class="total-price">${totalPrice.toFixed(2)}</span>
-				<button class="add-btn" onclick={addToCart} class:added>
+				<button class="add-btn" onclick={addToCart} class:added disabled={!kitAcknowledged}>
 					{added ? 'Added!' : 'Add to Cart'}
 				</button>
 			</div>
@@ -246,10 +251,27 @@
 		color: var(--base0);
 	}
 
-	.wrist-rest-toggle input {
+	.wrist-rest-toggle input,
+	.kit-acknowledge input {
 		accent-color: var(--blue);
 		width: 16px;
 		height: 16px;
+	}
+
+	.kit-acknowledge {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		cursor: pointer;
+		font-size: 0.8rem;
+		color: var(--base00);
+		line-height: 1.4;
+		margin-top: 4px;
+	}
+
+	.kit-acknowledge input {
+		margin-top: 1px;
+		flex-shrink: 0;
 	}
 
 	.price-row {
@@ -282,6 +304,15 @@
 
 	.add-btn:hover {
 		background-color: color-mix(in srgb, var(--blue) 85%, white);
+	}
+
+	.add-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.add-btn:disabled:hover {
+		background-color: var(--blue);
 	}
 
 	.add-btn.added {

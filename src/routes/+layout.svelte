@@ -4,9 +4,12 @@
 	import { cartStore } from '$lib/stores/cart.svelte.js';
 	import { themeStore } from '$lib/stores/theme.svelte.js';
 	import { authStore } from '$lib/stores/auth.svelte.js';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 
 	let { data, children } = $props();
+
+	const isDisplay = $derived(page.url.pathname.startsWith('/display'));
 
 	const themeLabels: Record<string, string> = {
 		'retro-beige': 'Retro Beige',
@@ -63,6 +66,9 @@
 	});
 </script>
 
+{#if isDisplay}
+	{@render children()}
+{:else}
 <div class="app">
 	<nav class="navbar">
 		<a href="/" class="logo"><span class="r1">T</span><span class="r2">y</span><span class="r3">p</span><span class="r4">e</span><span class="r5">A</span><span class="r6">r</span><span class="r7">t</span></a>
@@ -132,6 +138,7 @@
 		</div>
 	</footer>
 </div>
+{/if}
 
 <style>
 	.app {

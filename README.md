@@ -35,6 +35,7 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/forgot-password` | Password reset request — sends email with reset link |
 | `/reset-password` | Password reset — token-validated new password form |
 | `/settings` | Account settings — change password, delete account |
+| `/display` | Kiosk dashboard — full-screen stats display for 7" HDMI (revenue, orders, users, typing tests, recent orders, popular products). Auto-refreshes every 30s |
 | `/privacy` | Privacy policy |
 | `/terms` | Terms of service |
 | `+error.svelte` | Custom 404/error page with status code and back-to-home link |
@@ -221,7 +222,7 @@ src/
 │   └── Leaderboard.svelte          # Ranked score table (WPM, accuracy)
 ├── hooks.server.ts                  # Session parsing, CSRF protection, security headers, cleanup intervals
 └── routes/
-    ├── +layout.svelte               # Nav bar (rainbow logo, account dropdown, mobile hamburger) + footer + main slot
+    ├── +layout.svelte               # Nav bar (rainbow logo, account dropdown, mobile hamburger) + footer + main slot; bypassed for /display
     ├── +layout.server.ts            # Pass user to all pages
     ├── +error.svelte                # Custom 404/error page
     ├── +page.svelte                 # Home (2×2 nav cards: Store · Configure · Typing Test · Matrix Test)
@@ -234,6 +235,9 @@ src/
     ├── reset-password/+page.svelte  # Token-validated password reset
     ├── privacy/+page.svelte         # Privacy policy
     ├── terms/+page.svelte           # Terms of service
+    ├── display/
+    │   ├── +page.server.ts          # Dashboard stats queries (users, orders, revenue, typing tests, popular products)
+    │   └── +page.svelte             # Full-screen kiosk dashboard (Miami Nights, auto-refresh, live clock)
     ├── orders/
     │   ├── +page.svelte             # Order history list
     │   └── [id]/+page.svelte        # Order detail with itemized breakdown
@@ -317,6 +321,7 @@ pnpm build && sudo systemctl restart typeart
 | Tunnel | Cloudflare Tunnel → nginx → Node |
 | Database | SQLite WAL mode, `db.close()` on SIGTERM/SIGINT/sveltekit:shutdown |
 | Backups | Daily cron at 3 AM (`scripts/backup-db.sh`), WAL-safe `.backup`, 7-day retention |
+| Kiosk display | `typeart-display.service`: cage (Wayland compositor) + Firefox ESR kiosk → `localhost:3000/display` on HDMI |
 
 ## Known Limitations
 
@@ -371,6 +376,16 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 9 — Security Hardening II**: Password change endpoint (invalidates other sessions), account deletion (GDPR right to erasure), CSRF protection (Origin header checking), leaderboard query param validation, nginx request body size limit (1MB), max 5 sessions per user, account lockout (5 failures = 15min, 10 = 1hr), security event logging (login/lockout/password change/deletion with IP)
 
 ## Changelog
+
+### 2026-02-17
+
+**Kiosk dashboard display**
+- Added `/display` route: full-screen stats dashboard optimized for 7" HDMI display (1024×600)
+- Hardcoded Miami Nights theme with neon accent colors — revenue (green), orders (blue), users (violet), typing tests (cyan)
+- 4 stat cards with big numbers and "+N today" deltas, recent orders feed with status badges and relative timestamps, period breakdown (today/7d/30d), top products bar chart, avg/top WPM
+- Auto-refreshes data every 30s via `invalidateAll()`, live clock updates every second, pulsing green "live" indicator
+- Root layout conditionally bypasses navbar/footer for `/display` route
+- Systemd service (`typeart-display.service`): cage Wayland compositor + Firefox ESR kiosk mode, starts after typeart.service, enabled on boot
 
 ### 2026-02-16
 

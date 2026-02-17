@@ -18,11 +18,22 @@
 		quantity: number;
 	}
 
+	interface ShippingAddress {
+		name: string;
+		line1: string;
+		line2: string | null;
+		city: string;
+		state: string;
+		postalCode: string;
+		country: string;
+	}
+
 	interface Order {
 		id: string;
 		status: string;
 		total_cents: number;
 		created_at: string;
+		shipping: ShippingAddress | null;
 		items: OrderItem[];
 	}
 
@@ -117,6 +128,18 @@
 				</div>
 			{/each}
 		</div>
+
+		{#if order.shipping}
+			<div class="shipping-section">
+				<h3>Ship to</h3>
+				<p class="shipping-address">
+					{order.shipping.name}<br>
+					{order.shipping.line1}
+					{#if order.shipping.line2}<br>{order.shipping.line2}{/if}<br>
+					{order.shipping.city}, {order.shipping.state} {order.shipping.postalCode}
+				</p>
+			</div>
+		{/if}
 
 		<div class="order-footer">
 			<span>Total</span>
@@ -253,6 +276,28 @@
 		color: var(--green);
 		min-width: 70px;
 		text-align: right;
+	}
+
+	.shipping-section {
+		margin-top: 24px;
+		padding: 16px;
+		background-color: var(--base02);
+		border-radius: var(--radius-lg);
+	}
+
+	.shipping-section h3 {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--base00);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: 8px;
+	}
+
+	.shipping-address {
+		font-size: 0.875rem;
+		color: var(--base0);
+		line-height: 1.5;
 	}
 
 	.order-footer {

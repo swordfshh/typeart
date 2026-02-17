@@ -21,11 +21,22 @@ export interface OrderRow {
 	created_at: string;
 }
 
+export interface ShippingAddress {
+	name: string;
+	line1: string;
+	line2: string | null;
+	city: string;
+	state: string;
+	postalCode: string;
+	country: string;
+}
+
 export interface OrderDetail {
 	id: string;
 	status: string;
 	total_cents: number;
 	created_at: string;
+	shipping: ShippingAddress | null;
 	items: OrderItemRow[];
 }
 
@@ -226,15 +237,58 @@ export function recordWebhookEvent(eventId: string, eventType: string, orderId?:
 	).run(eventId, eventType, orderId ?? null);
 }
 
+interface OrderDbRow {
+	id: string;
+	status: string;
+	total_cents: number;
+	created_at: string;
+	user_id?: string;
+	shipping_name: string | null;
+	shipping_address_line1: string | null;
+	shipping_address_line2: string | null;
+	shipping_city: string | null;
+	shipping_state: string | null;
+	shipping_postal_code: string | null;
+	shipping_country: string | null;
+}
+
+function buildShipping(row: OrderDbRow): ShippingAddress | null {
+	if (!row.shipping_name || !row.shipping_address_line1) return null;
+	return {
+		name: row.shipping_name,
+		line1: row.shipping_address_line1,
+		line2: row.shipping_address_line2,
+		city: row.shipping_city!,
+		state: row.shipping_state!,
+		postalCode: row.shipping_postal_code!,
+		country: row.shipping_country!
+	};
+}
+
+export function updateOrderShipping(orderId: string, shipping: ShippingAddress): void {
+	db.prepare(
+		`UPDATE orders SET
+			shipping_name = ?, shipping_address_line1 = ?, shipping_address_line2 = ?,
+			shipping_city = ?, shipping_state = ?, shipping_postal_code = ?, shipping_country = ?
+		 WHERE id = ?`
+	).run(
+		shipping.name, shipping.line1, shipping.line2,
+		shipping.city, shipping.state, shipping.postalCode, shipping.country,
+		orderId
+	);
+}
+
 export function getOrderById(orderId: string): (OrderDetail & { user_id: string }) | null {
-	const order = db
+	const row = db
 		.prepare(
-			`SELECT id, user_id, status, total_cents, created_at
+			`SELECT id, user_id, status, total_cents, created_at,
+			        shipping_name, shipping_address_line1, shipping_address_line2,
+			        shipping_city, shipping_state, shipping_postal_code, shipping_country
 			 FROM orders WHERE id = ?`
 		)
-		.get(orderId) as (Omit<OrderDetail, 'items'> & { user_id: string }) | undefined;
+		.get(orderId) as (OrderDbRow & { user_id: string }) | undefined;
 
-	if (!order) return null;
+	if (!row) return null;
 
 	const items = db
 		.prepare(
@@ -246,7 +300,11 @@ export function getOrderById(orderId: string): (OrderDetail & { user_id: string 
 		)
 		.all(orderId) as OrderItemRow[];
 
-	return { ...order, items };
+	return {
+		id: row.id, user_id: row.user_id, status: row.status,
+		total_cents: row.total_cents, created_at: row.created_at,
+		shipping: buildShipping(row), items
+	};
 }
 
 export function getOrderByStripeSession(
@@ -277,14 +335,16 @@ export function cleanStaleWebhookEvents(): void {
 }
 
 export function getOrder(userId: string, orderId: string): OrderDetail | null {
-	const order = db
+	const row = db
 		.prepare(
-			`SELECT id, status, total_cents, created_at
+			`SELECT id, status, total_cents, created_at,
+			        shipping_name, shipping_address_line1, shipping_address_line2,
+			        shipping_city, shipping_state, shipping_postal_code, shipping_country
 			 FROM orders WHERE id = ? AND user_id = ?`
 		)
-		.get(orderId, userId) as Omit<OrderDetail, 'items'> | undefined;
+		.get(orderId, userId) as OrderDbRow | undefined;
 
-	if (!order) return null;
+	if (!row) return null;
 
 	const items = db
 		.prepare(
@@ -296,5 +356,8 @@ export function getOrder(userId: string, orderId: string): OrderDetail | null {
 		)
 		.all(orderId) as OrderItemRow[];
 
-	return { ...order, items };
+	return {
+		id: row.id, status: row.status, total_cents: row.total_cents,
+		created_at: row.created_at, shipping: buildShipping(row), items
+	};
 }

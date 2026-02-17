@@ -5,7 +5,9 @@ import {
 	getOrderById,
 	isWebhookEventProcessed,
 	processPaymentWebhook,
-	recordWebhookEvent
+	recordWebhookEvent,
+	updateOrderShipping,
+	type ShippingAddress
 } from '$lib/server/orders.js';
 import { sendOrderConfirmationEmail, type OrderEmailItem } from '$lib/server/email.js';
 import { db } from '$lib/server/db.js';
@@ -73,6 +75,22 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ received: true });
 		}
 
+		// Store shipping address from Stripe
+		let shipping: ShippingAddress | null = null;
+		if (session.shipping_details?.address) {
+			const addr = session.shipping_details.address;
+			shipping = {
+				name: session.shipping_details.name ?? '',
+				line1: addr.line1 ?? '',
+				line2: addr.line2 ?? null,
+				city: addr.city ?? '',
+				state: addr.state ?? '',
+				postalCode: addr.postal_code ?? '',
+				country: addr.country ?? ''
+			};
+			updateOrderShipping(orderId, shipping);
+		}
+
 		// Send confirmation email (best-effort, logged on failure)
 		try {
 			const user = db
@@ -93,7 +111,7 @@ export const POST: RequestHandler = async ({ request }) => {
 							(item.wrist_rest ? item.wrist_rest_price_cents : 0)) *
 						item.quantity
 				}));
-				await sendOrderConfirmationEmail(user.email, orderId, emailItems, order.total_cents);
+				await sendOrderConfirmationEmail(user.email, orderId, emailItems, order.total_cents, shipping);
 			} else {
 				console.error(`Stripe webhook ${event.id}: no email found for user ${order.user_id} (order ${orderId})`);
 			}

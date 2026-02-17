@@ -14,6 +14,8 @@
 		<p class="store-subtitle">Keyboard kits, built for focus</p>
 	</div>
 
+	<p class="kit-disclaimer">These are keyboard kits — switches and keycaps are not included and must be sourced separately.</p>
+
 	<div class="product-grid">
 		{#each data.products as product}
 			<ProductCard
@@ -51,6 +53,14 @@
 		margin-top: 8px;
 		font-size: 1rem;
 		color: var(--base00);
+	}
+
+	.kit-disclaimer {
+		text-align: center;
+		font-size: 0.8rem;
+		color: var(--base00);
+		margin-bottom: 32px;
+		font-style: italic;
 	}
 
 	.product-grid {

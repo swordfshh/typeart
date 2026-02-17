@@ -80,11 +80,22 @@ export interface OrderEmailItem {
 	lineTotalCents: number;
 }
 
+export interface ShippingEmailAddress {
+	name: string;
+	line1: string;
+	line2: string | null;
+	city: string;
+	state: string;
+	postalCode: string;
+	country: string;
+}
+
 export async function sendOrderConfirmationEmail(
 	email: string,
 	orderId: string,
 	items: OrderEmailItem[],
-	totalCents: number
+	totalCents: number,
+	shipping?: ShippingEmailAddress | null
 ): Promise<boolean> {
 	const itemRows = items
 		.map(
@@ -124,6 +135,15 @@ export async function sendOrderConfirmationEmail(
 	<p style="margin-top: 16px; font-size: 18px; font-weight: 700; text-align: right;">
 		Total: $${(totalCents / 100).toFixed(2)}
 	</p>
+	${shipping ? `
+	<div style="margin-top: 24px; padding: 16px; background: #E8DCC6; border-radius: 4px;">
+		<p style="margin: 0 0 8px; font-weight: 600; font-size: 14px;">Ship to</p>
+		<p style="margin: 0; font-size: 14px; color: #4D3F2A; line-height: 1.5;">
+			${shipping.name}<br>
+			${shipping.line1}${shipping.line2 ? '<br>' + shipping.line2 : ''}<br>
+			${shipping.city}, ${shipping.state} ${shipping.postalCode}
+		</p>
+	</div>` : ''}
 	<p style="margin-top: 24px; font-size: 13px; color: #8A7A5F;">
 		Thank you for your order. We'll begin building your keyboard soon.
 	</p>

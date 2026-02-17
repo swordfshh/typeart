@@ -61,6 +61,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const session = await getStripe().checkout.sessions.create({
 		mode: 'payment',
 		line_items: lineItems,
+		shipping_address_collection: { allowed_countries: ['US'] },
 		success_url: `${BASE_URL}/store/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
 		cancel_url: `${BASE_URL}/store/cart`,
 		metadata: { order_id: orderId, user_id: locals.user.id }

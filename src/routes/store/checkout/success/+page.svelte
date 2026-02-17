@@ -17,6 +17,17 @@
 	<div class="check-icon">&#10003;</div>
 	<h1>Order confirmed</h1>
 	<p>Thank you for your purchase. You'll receive a confirmation email shortly.</p>
+	{#if data.shipping}
+		<div class="shipping-card">
+			<span class="shipping-label">Shipping to</span>
+			<p class="shipping-address">
+				{data.shipping.name}<br>
+				{data.shipping.line1}
+				{#if data.shipping.line2}<br>{data.shipping.line2}{/if}<br>
+				{data.shipping.city}, {data.shipping.state} {data.shipping.postalCode}
+			</p>
+		</div>
+	{/if}
 	<div class="actions">
 		{#if data.orderId}
 			<a href="/orders/{data.orderId}" class="view-order">View your order</a>
@@ -60,6 +71,29 @@
 		font-size: 0.95rem;
 		color: var(--base00);
 		margin-bottom: 32px;
+	}
+
+	.shipping-card {
+		text-align: left;
+		padding: 16px;
+		background-color: var(--base02);
+		border-radius: var(--radius-lg);
+		margin-bottom: 32px;
+	}
+
+	.shipping-label {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--base00);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.shipping-address {
+		font-size: 0.875rem;
+		color: var(--base0);
+		line-height: 1.5;
+		margin-bottom: 0;
 	}
 
 	.actions {

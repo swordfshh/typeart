@@ -273,8 +273,8 @@ static/
 ├── products.txt                     # Product catalog (line-based format with color/stabilizer pricing)
 ├── 99-typeart.rules                 # Linux udev rules for HID access
 ├── images/products/
-│   ├── type-40/{1-5}.jpg           # Type 40 product photos (compressed 1200×900)
-│   └── type-qaz/{1-3}.jpg          # Type QAZ product photos
+│   ├── type-40/{1-5}.{jpg,webp}    # Type 40 product photos (JPEG + WebP, 1200×900)
+│   └── type-qaz/{1-3}.{jpg,webp}   # Type QAZ product photos (JPEG + WebP)
 ├── firmware/
 │   ├── lux40v2_via.bin             # VIA-enabled QMK firmware for Lux40v2
 │   └── lux36_via.bin               # VIA-enabled QMK firmware for Lux36
@@ -362,7 +362,7 @@ pnpm build && sudo systemctl restart typeart
 
 **High — Trust & Discoverability**
 - [ ] **Shipping & return policy page** — Delivery timeframes, return window, refund process
-- [ ] **FAQ page** — Common questions about keyboards, shipping, compatibility
+- [x] **FAQ page** — Common questions about keyboards, shipping, compatibility (FAQ schema on about page)
 - [ ] **Email verification** — Confirm email on registration before allowing orders
 - [x] **SEO metadata** — Meta descriptions, Open Graph tags, Twitter Cards, JSON-LD structured data for products, sitemap.xml, canonical URLs, Google Merchant product feed
 - [ ] **Product specs** — Dimensions, weight, materials, switch compatibility, what's included
@@ -396,7 +396,7 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 11 — Stripe Checkout**: Stripe Checkout (hosted) integration, webhook-confirmed orders with signature verification, idempotent payment processing, stale pending order cleanup, Miami Nights logo exports
 - [x] **Phase 12 — Checkout Security Hardening**: Webhook event deduplication (prevents duplicate emails/replay attacks), atomic payment transaction, payment_status validation, dispute/failure/expiry webhook handlers, Stripe secret startup validation, CSP connect-src fix for Stripe domains
 - [x] **Phase 13 — Shipping & Kit Acknowledgment**: Stripe Checkout collects US shipping address, webhook stores in DB, displayed on order detail/success pages and confirmation email, kit acknowledgment checkbox on product page
-- [x] **Phase 14 — SEO & Discoverability**: Meta descriptions, OG tags, Twitter Cards, JSON-LD Product/ItemList/Organization/WebSite schemas, canonical URLs, XML sitemap, Google Merchant Center product feed, about page with build guide and internal cross-linking, descriptive image alt text
+- [x] **Phase 14 — SEO & Discoverability**: Meta descriptions, OG tags, Twitter Cards, JSON-LD Product/ItemList/Organization/WebSite/BreadcrumbList/FAQPage schemas, canonical URLs, XML sitemap, Google Merchant Center product feed, about page with build guide and internal cross-linking, descriptive image alt text, WebP image optimization with `<picture>` tag fallbacks
 
 ## Changelog
 
@@ -414,6 +414,9 @@ pnpm build && sudo systemctl restart typeart
 - About link added to site footer
 - Internal cross-links: product pages → configurator, matrix tester → store/configurator, configurator → store
 - Descriptive image alt text on product photos for Google Image search
+- WebP image optimization: all product photos and about page photos converted to WebP, served via `<picture>` tags with JPEG fallback (ProductCard, product detail, cart, about page)
+- BreadcrumbList JSON-LD on product detail pages (Home > Store > Product Name)
+- FAQPage JSON-LD on about page with 5 Q&A pairs (kit contents, soldering, compatibility, firmware, shipping)
 - `robots.txt` updated with sitemap reference
 
 **Shipping address collection & kit acknowledgment**

@@ -6,6 +6,24 @@
 
 <svelte:head>
 	<title>Store — TypeArt</title>
+	<meta name="description" content="TypeArt keyboard kits — compact mechanical keyboards with gasket mount, hot-swap sockets, and QMK/VIA support. Free shipping." />
+	<meta property="og:title" content="Store — TypeArt" />
+	<meta property="og:description" content="Compact mechanical keyboard kits with gasket mount, hot-swap sockets, and QMK/VIA support. Free shipping." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://typeart.co/store" />
+	<meta property="og:image" content="https://typeart.co/images/products/{data.products[0]?.slug}/1.jpg" />
+	<meta name="twitter:card" content="summary_large_image" />
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		"name": "TypeArt Keyboard Kits",
+		"url": "https://typeart.co/store",
+		"itemListElement": data.products.map((p, i) => ({
+			"@type": "ListItem",
+			"position": i + 1,
+			"url": `https://typeart.co/store/${p.slug}`
+		}))
+	})}</script>`}
 </svelte:head>
 
 <div class="store">

@@ -1,3 +1,30 @@
+<svelte:head>
+	<title>TypeArt — Custom Keyboard Kits & Configuration Tools</title>
+	<meta name="description" content="Custom mechanical keyboard kits with gasket mount and hot-swap sockets, plus a live keymap configurator, typing test, and matrix tester. Free shipping." />
+	<meta property="og:title" content="TypeArt — Custom Keyboard Kits & Configuration Tools" />
+	<meta property="og:description" content="Custom mechanical keyboard kits with gasket mount and hot-swap sockets, plus a live keymap configurator, typing test, and matrix tester." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://typeart.co" />
+	<meta property="og:image" content="https://typeart.co/logo-dark.png" />
+	<meta name="twitter:card" content="summary" />
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		"@context": "https://schema.org",
+		"@graph": [
+			{
+				"@type": "Organization",
+				"name": "TypeArt",
+				"url": "https://typeart.co",
+				"logo": "https://typeart.co/logo-dark.png"
+			},
+			{
+				"@type": "WebSite",
+				"name": "TypeArt",
+				"url": "https://typeart.co"
+			}
+		]
+	})}</script>`}
+</svelte:head>
+
 <div class="home">
 	<div class="hero">
 		<h1><span class="r1">T</span><span class="r2">y</span><span class="r3">p</span><span class="r4">e</span><span class="r5">A</span><span class="r6">r</span><span class="r7">t</span></h1>

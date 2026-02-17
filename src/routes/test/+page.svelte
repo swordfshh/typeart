@@ -225,6 +225,13 @@
 
 <svelte:head>
 	<title>Matrix Test — TypeArt</title>
+	<meta name="description" content="Real-time keyboard matrix tester — visualize key presses and encoder rotation on your VIA-compatible mechanical keyboard." />
+	<meta property="og:title" content="Matrix Test — TypeArt" />
+	<meta property="og:description" content="Visualize key presses and encoder rotation on your VIA-compatible mechanical keyboard in real time." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://typeart.co/test" />
+	<meta property="og:image" content="https://typeart.co/logo-dark.png" />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="test-page">
@@ -266,6 +273,7 @@
 		<div class="empty-state">
 			<p>Connect a VIA-compatible keyboard to test the switch matrix.</p>
 			<p class="attribution">Built on <a href="https://qmk.fm" target="_blank" rel="noopener">QMK</a> and <a href="https://usevia.app" target="_blank" rel="noopener">VIA</a></p>
+			<p class="cross-link">Need a board? Check out our <a href="/store">keyboard kits</a>. Already built? <a href="/configure">Configure your keymap</a>.</p>
 		</div>
 	{/if}
 </div>
@@ -374,5 +382,15 @@
 		color: var(--base0);
 		text-decoration: underline;
 		text-underline-offset: 2px;
+	}
+
+	.cross-link {
+		font-size: 0.8125rem;
+		color: var(--base00);
+		margin-top: 12px;
+	}
+
+	.cross-link a {
+		color: var(--blue);
 	}
 </style>

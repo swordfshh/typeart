@@ -37,8 +37,11 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/reset-password` | Password reset — token-validated new password form |
 | `/settings` | Account settings — change password, delete account |
 | `/display` | Kiosk dashboard — full-screen stats display for 7" HDMI (revenue, orders, users, typing tests, recent orders, popular products). Auto-refreshes every 30s |
+| `/about` | About page — brand story, keyboard build guide, layout explanations, tools overview, internal cross-links |
 | `/privacy` | Privacy policy |
 | `/terms` | Terms of service |
+| `/sitemap.xml` | XML sitemap with all public pages and product image tags |
+| `/feeds/products.xml` | Google Merchant Center product feed (RSS 2.0 with g: namespace) |
 | `+error.svelte` | Custom 404/error page with status code and back-to-home link |
 
 ## Architecture
@@ -235,8 +238,11 @@ src/
     ├── settings/+page.svelte         # Account settings (change password, delete account)
     ├── forgot-password/+page.svelte # Password reset request
     ├── reset-password/+page.svelte  # Token-validated password reset
+    ├── about/+page.svelte            # About page (brand story, build guide, tools)
     ├── privacy/+page.svelte         # Privacy policy
     ├── terms/+page.svelte           # Terms of service
+    ├── sitemap.xml/+server.ts       # XML sitemap (prerendered)
+    ├── feeds/products.xml/+server.ts # Google Merchant Center product feed (prerendered)
     ├── display/
     │   ├── +page.server.ts          # Dashboard stats queries (users, orders, revenue, typing tests, popular products)
     │   └── +page.svelte             # Full-screen kiosk dashboard (Miami Nights, auto-refresh, live clock)
@@ -358,7 +364,7 @@ pnpm build && sudo systemctl restart typeart
 - [ ] **Shipping & return policy page** — Delivery timeframes, return window, refund process
 - [ ] **FAQ page** — Common questions about keyboards, shipping, compatibility
 - [ ] **Email verification** — Confirm email on registration before allowing orders
-- [ ] **SEO metadata** — Meta descriptions, Open Graph tags, Twitter Cards, JSON-LD structured data for products, sitemap.xml
+- [x] **SEO metadata** — Meta descriptions, Open Graph tags, Twitter Cards, JSON-LD structured data for products, sitemap.xml, canonical URLs, Google Merchant product feed
 - [ ] **Product specs** — Dimensions, weight, materials, switch compatibility, what's included
 
 **Medium — User Experience**
@@ -369,7 +375,7 @@ pnpm build && sudo systemctl restart typeart
 - [ ] **Accessibility** — Skip-to-content link, ARIA labels on all interactive elements, aria-live regions for dynamic updates, focus trapping in modals
 
 **Low — Nice to Have**
-- [ ] **About page** — Brand story, team, mission
+- [x] **About page** — Brand story, keyboard build guide, layout explanations, tools overview, internal cross-links, SEO-rich content
 - [ ] **Related products / cross-sells** — "Customers also bought" on product pages
 - [ ] **Wishlist** — Save products for later
 - [ ] **PWA support** — Service worker, offline mode, "Add to Home Screen"
@@ -390,10 +396,25 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 11 — Stripe Checkout**: Stripe Checkout (hosted) integration, webhook-confirmed orders with signature verification, idempotent payment processing, stale pending order cleanup, Miami Nights logo exports
 - [x] **Phase 12 — Checkout Security Hardening**: Webhook event deduplication (prevents duplicate emails/replay attacks), atomic payment transaction, payment_status validation, dispute/failure/expiry webhook handlers, Stripe secret startup validation, CSP connect-src fix for Stripe domains
 - [x] **Phase 13 — Shipping & Kit Acknowledgment**: Stripe Checkout collects US shipping address, webhook stores in DB, displayed on order detail/success pages and confirmation email, kit acknowledgment checkbox on product page
+- [x] **Phase 14 — SEO & Discoverability**: Meta descriptions, OG tags, Twitter Cards, JSON-LD Product/ItemList/Organization/WebSite schemas, canonical URLs, XML sitemap, Google Merchant Center product feed, about page with build guide and internal cross-linking, descriptive image alt text
 
 ## Changelog
 
 ### 2026-02-17
+
+**SEO: structured data, meta tags, sitemap, about page, Merchant Center feed**
+- Per-page `<meta name="description">` and Open Graph tags (`og:title`, `og:description`, `og:type`, `og:url`, `og:image`) on all public pages
+- Twitter Card tags (`summary_large_image` for products, `summary` for tools)
+- JSON-LD structured data: `Product` schema on product pages (with offers, shipping, brand), `ItemList` on store listing, `Organization` + `WebSite` on home page, `AboutPage` on about page
+- Canonical URLs via `<link rel="canonical">` on every page (root layout)
+- XML sitemap at `/sitemap.xml` with product image tags, submitted to Google Search Console and Bing Webmaster Tools
+- Google Merchant Center product feed at `/feeds/products.xml` (RSS 2.0 with `g:` namespace) — includes brand, MPN, category 303 (Keyboards), all product images, free shipping
+- Default `<meta name="description">` and `<meta property="og:site_name">` in `app.html`
+- About page (`/about`) — rich content page with keyboard build guide, layout explanations (40% and QAZ), what's in the kit, why compact keyboards, tools overview, real photos from `static/images/kb/`, heavy internal cross-linking
+- About link added to site footer
+- Internal cross-links: product pages → configurator, matrix tester → store/configurator, configurator → store
+- Descriptive image alt text on product photos for Google Image search
+- `robots.txt` updated with sitemap reference
 
 **Shipping address collection & kit acknowledgment**
 - Stripe Checkout now collects US shipping address (`shipping_address_collection: { allowed_countries: ['US'] }`)

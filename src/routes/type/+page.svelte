@@ -419,6 +419,13 @@
 
 <svelte:head>
 	<title>Typing Test — TypeArt</title>
+	<meta name="description" content="Free online typing test — measure your WPM with timed, word count, and quote modes. Track scores and compete on the leaderboard." />
+	<meta property="og:title" content="Typing Test — TypeArt" />
+	<meta property="og:description" content="Measure your typing speed with timed, word count, and quote modes. Track scores and compete on the leaderboard." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://typeart.co/type" />
+	<meta property="og:image" content="https://typeart.co/logo-dark.png" />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="typing-test">

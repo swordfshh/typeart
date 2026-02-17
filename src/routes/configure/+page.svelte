@@ -94,6 +94,13 @@
 
 <svelte:head>
 	<title>Configure — TypeArt</title>
+	<meta name="description" content="Live keymap configurator for VIA-compatible keyboards — remap keys, configure layers, and flash keymaps over WebHID." />
+	<meta property="og:title" content="Configure — TypeArt" />
+	<meta property="og:description" content="Remap keys, configure layers, and flash keymaps on your VIA-compatible keyboard over WebHID." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://typeart.co/configure" />
+	<meta property="og:image" content="https://typeart.co/logo-dark.png" />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <div class="configure-page">
@@ -193,6 +200,7 @@
 		<div class="empty-state">
 			<p>Connect a VIA-compatible keyboard to start editing keymaps.</p>
 			<p class="attribution">Built on <a href="https://qmk.fm" target="_blank" rel="noopener">QMK</a> and <a href="https://usevia.app" target="_blank" rel="noopener">VIA</a></p>
+			<p class="cross-link">Need a board? Check out our <a href="/store">keyboard kits</a> — QMK/VIA ready out of the box.</p>
 		</div>
 	{/if}
 </div>
@@ -360,5 +368,15 @@
 		color: var(--base0);
 		text-decoration: underline;
 		text-underline-offset: 2px;
+	}
+
+	.cross-link {
+		font-size: 0.8125rem;
+		color: var(--base00);
+		margin-top: 12px;
+	}
+
+	.cross-link a {
+		color: var(--blue);
 	}
 </style>

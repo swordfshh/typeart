@@ -15,7 +15,7 @@
 	{#if imageCount > 0}
 		<img
 			src="/images/products/{slug}/1.jpg"
-			alt={name}
+			alt="{name} compact mechanical keyboard kit — {tagline}"
 			class="product-image"
 			loading="lazy"
 		/>

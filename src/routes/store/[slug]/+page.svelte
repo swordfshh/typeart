@@ -58,6 +58,44 @@
 
 <svelte:head>
 	<title>{product.name} — TypeArt</title>
+	<meta name="description" content="{product.tagline}. Free shipping on all orders." />
+	<meta property="og:title" content="{product.name} — TypeArt" />
+	<meta property="og:description" content="{product.tagline}. Free shipping." />
+	<meta property="og:type" content="product" />
+	<meta property="og:url" content="https://typeart.co/store/{product.slug}" />
+	<meta property="og:image" content="https://typeart.co/images/products/{product.slug}/1.jpg" />
+	<meta name="twitter:card" content="summary_large_image" />
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		"@context": "https://schema.org",
+		"@type": "Product",
+		"name": product.name,
+		"description": product.description,
+		"image": `https://typeart.co/images/products/${product.slug}/1.jpg`,
+		"url": `https://typeart.co/store/${product.slug}`,
+		"brand": {
+			"@type": "Brand",
+			"name": "TypeArt"
+		},
+		"offers": {
+			"@type": "Offer",
+			"price": product.price.toFixed(2),
+			"priceCurrency": "USD",
+			"availability": "https://schema.org/InStock",
+			"url": `https://typeart.co/store/${product.slug}`,
+			"shippingDetails": {
+				"@type": "OfferShippingDetails",
+				"shippingRate": {
+					"@type": "MonetaryAmount",
+					"value": "0",
+					"currency": "USD"
+				},
+				"shippingDestination": {
+					"@type": "DefinedRegion",
+					"addressCountry": "US"
+				}
+			}
+		}
+	})}</script>`}
 </svelte:head>
 
 <div class="product-detail">
@@ -68,7 +106,7 @@
 			{#if images.length > 0}
 				<img
 					src={images[activeImage]}
-					alt="{product.name} — photo {activeImage + 1}"
+					alt="{product.name} compact mechanical keyboard kit — {product.tagline}"
 					class="main-image"
 				/>
 				{#if images.length > 1}
@@ -79,7 +117,7 @@
 								class:active={activeImage === i}
 								onclick={() => (activeImage = i)}
 							>
-								<img src={src} alt="{product.name} thumbnail {i + 1}" loading="lazy" />
+								<img src={src} alt="{product.name} mechanical keyboard kit — view {i + 1}" loading="lazy" />
 							</button>
 						{/each}
 					</div>
@@ -134,6 +172,8 @@
 					{added ? 'Added!' : 'Add to Cart'}
 				</button>
 			</div>
+
+			<p class="configure-link">After building, <a href="/configure">configure your keymap</a> live in the browser. <a href="/about">Learn more</a> about what's in the kit.</p>
 		</div>
 	</div>
 </div>
@@ -331,5 +371,16 @@
 
 	.add-btn.added {
 		background-color: var(--green);
+	}
+
+	.configure-link {
+		margin-top: 16px;
+		font-size: 0.8rem;
+		color: var(--base00);
+		line-height: 1.5;
+	}
+
+	.configure-link a {
+		color: var(--blue);
 	}
 </style>

@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { cartStore } from '$lib/stores/cart.svelte.js';
+	import { authStore } from '$lib/stores/auth.svelte.js';
+
+	let checkingOut = $state(false);
+	let checkoutError = $state('');
 
 	onMount(() => {
 		cartStore.hydrate();
@@ -8,6 +13,36 @@
 
 	function itemTotal(item: (typeof cartStore.items)[0]): number {
 		return (item.basePrice + (item.colorPrice ?? 0) + item.stabilizer.price + (item.wristRest ? item.wristRestPrice : 0)) * item.quantity;
+	}
+
+	async function handleCheckout() {
+		if (!authStore.loggedIn) {
+			goto('/login');
+			return;
+		}
+
+		checkingOut = true;
+		checkoutError = '';
+
+		try {
+			const res = await fetch('/api/checkout', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ items: cartStore.items })
+			});
+			const data = await res.json();
+
+			if (!res.ok) {
+				checkoutError = data.error || 'Checkout failed';
+				return;
+			}
+
+			window.location.href = data.url;
+		} catch {
+			checkoutError = 'Network error. Please try again.';
+		} finally {
+			checkingOut = false;
+		}
 	}
 </script>
 
@@ -59,8 +94,13 @@
 			</div>
 			<div class="cart-actions">
 				<a href="/store" class="continue-link">Continue Shopping</a>
-				<button class="checkout-btn" disabled>Checkout coming soon</button>
+				<button class="checkout-btn" onclick={handleCheckout} disabled={checkingOut}>
+					{checkingOut ? 'Redirecting...' : 'Checkout'}
+				</button>
 			</div>
+			{#if checkoutError}
+				<p class="checkout-error">{checkoutError}</p>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -236,13 +276,30 @@
 
 	.checkout-btn {
 		padding: 10px 24px;
-		background-color: var(--base01);
-		color: var(--base00);
+		background-color: var(--green);
+		color: var(--base02);
 		border: none;
 		border-radius: var(--radius-md);
 		font-size: 0.875rem;
 		font-weight: 600;
 		font-family: inherit;
+		cursor: pointer;
+		transition: opacity 100ms ease;
+	}
+
+	.checkout-btn:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+
+	.checkout-btn:disabled {
+		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.checkout-error {
+		margin-top: 12px;
+		font-size: 0.85rem;
+		color: var(--red);
+		text-align: right;
 	}
 </style>

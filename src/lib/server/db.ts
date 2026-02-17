@@ -118,6 +118,15 @@ function createDb(): Database.Database {
 		db.exec(`ALTER TABLE order_items ADD COLUMN color_surcharge_cents INTEGER NOT NULL DEFAULT 0`);
 	}
 
+	const orderCols = db.prepare(`PRAGMA table_info(orders)`).all() as { name: string }[];
+	if (!orderCols.some((c) => c.name === 'stripe_session_id')) {
+		db.exec(`ALTER TABLE orders ADD COLUMN stripe_session_id TEXT`);
+	}
+	if (!orderCols.some((c) => c.name === 'stripe_payment_intent')) {
+		db.exec(`ALTER TABLE orders ADD COLUMN stripe_payment_intent TEXT`);
+	}
+	db.exec(`CREATE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders(stripe_session_id)`);
+
 	return db;
 }
 

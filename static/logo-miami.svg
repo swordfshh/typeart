@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 100" width="2080" height="400">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <text font-family="'Courier Prime', 'Courier New', monospace" font-size="90" font-style="italic" font-weight="bold" y="78" filter="url(#glow)" paint-order="stroke" stroke-width="1.5" stroke-linejoin="round">
+    <tspan x="0" fill="#0AD2D3" stroke="#0AD2D3">T</tspan><tspan fill="#00D4FF" stroke="#00D4FF">y</tspan><tspan fill="#B537F2" stroke="#B537F2">p</tspan><tspan fill="#FF2E97" stroke="#FF2E97">e</tspan><tspan fill="#0AD2D3" stroke="#0AD2D3">A</tspan><tspan fill="#00D4FF" stroke="#00D4FF">r</tspan><tspan fill="#FF2E97" stroke="#FF2E97">t</tspan>
+  </text>
+</svg>

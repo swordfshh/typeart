@@ -1,16 +1,20 @@
 import type { Handle } from '@sveltejs/kit';
 import { getSession, cleanExpiredSessions, cleanExpiredResetTokens, SESSION_COOKIE } from '$lib/server/auth.js';
 import { cleanupRateLimits } from '$lib/server/rate-limit.js';
+import { cleanStalePendingOrders } from '$lib/server/orders.js';
 
 setInterval(() => {
 	cleanExpiredSessions();
 	cleanExpiredResetTokens();
 	cleanupRateLimits();
+	cleanStalePendingOrders();
 }, 60 * 60 * 1000);
 
 export const handle: Handle = async ({ event, resolve }) => {
 	// CSRF protection: reject state-changing requests with mismatched Origin
-	if (event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+	// Skip for Stripe webhooks (authenticated via signature verification)
+	const isStripeWebhook = event.url.pathname === '/api/webhooks/stripe';
+	if (event.request.method !== 'GET' && event.request.method !== 'HEAD' && !isStripeWebhook) {
 		const origin = event.request.headers.get('origin');
 		if (origin) {
 			const url = new URL(event.request.url);

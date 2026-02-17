@@ -29,6 +29,7 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/configure` | Live keymap editor — connect keyboard, auto-detect definition, click-to-reassign keys, always-visible keycode picker with search/categories/LT-MT builder/"Any" key input |
 | `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
 | `/type` | Typing speed test — time/words/quote modes, inline stats + leaderboard toggles in settings bar, score submission + leaderboard on finish |
+| `/store/checkout/success` | Checkout success — order confirmation, clears cart, links to order detail |
 | `/orders` | Order history — list of placed orders with status, links to detail |
 | `/orders/[id]` | Order detail — itemized breakdown with color, variants, totals |
 | `/login` | Login/register — tabbed form, session-based auth |
@@ -203,6 +204,7 @@ src/
 │   │   ├── rate-limit.ts            # SQLite-backed sliding window rate limiter
 │   │   ├── scores.ts               # Score validation (cross-field checks), submission, leaderboard queries
 │   │   ├── orders.ts               # Order creation (transactional, server-side price validation incl. color/stabilizer surcharges)
+│   │   ├── stripe.ts               # Stripe client singleton (lazy init) + webhook secret
 │   │   ├── email.ts                # Email service (Resend) — password reset, order confirmation
 │   │   └── security-log.ts         # Security event logger (login, lockout, password change, deletion)
 │   └── utils/
@@ -244,18 +246,24 @@ src/
     ├── api/
     │   ├── auth/{register,login,logout,me,forgot-password,reset-password,change-password,delete-account}/+server.ts
     │   ├── scores/{+server.ts,me/+server.ts}           # Score API routes
-    │   └── orders/{+server.ts,[id]/+server.ts}         # Order API routes
+    │   ├── orders/{+server.ts,[id]/+server.ts}         # Order API routes
+    │   ├── checkout/+server.ts      # Stripe Checkout Session creation (POST)
+    │   └── webhooks/stripe/+server.ts # Stripe webhook (payment confirmation, signature-verified)
     └── store/
         ├── +page.ts                 # Load: fetch & parse products.txt
         ├── +page.svelte             # Product listing grid
         ├── [slug]/+page.ts + .svelte # Product detail + variants
-        └── cart/+page.svelte        # Cart with qty controls + totals
+        ├── cart/+page.svelte        # Cart with qty controls + Stripe checkout
+        └── checkout/success/        # Post-payment confirmation page (+page.server.ts + .svelte)
 
 scripts/
 └── backup-db.sh                     # Daily SQLite backup (WAL-safe, 7-day retention)
 
 static/
 ├── favicon.svg                      # Browser tab icon (TA in Miami Nights cyan/pink)
+├── logo-transparent.png             # TypeArt logo (Miami Nights, transparent background)
+├── logo-dark.png                    # TypeArt logo (Miami Nights, dark background)
+├── logo-miami.svg                   # TypeArt logo (scalable vector)
 ├── products.txt                     # Product catalog (line-based format with color/stabilizer pricing)
 ├── 99-typeart.rules                 # Linux udev rules for HID access
 ├── images/products/
@@ -334,14 +342,15 @@ pnpm build && sudo systemctl restart typeart
 - **No lighting panel** — RGB/backlight keycodes assignable but no dedicated config UI
 - **Import writes key-by-key** — could use `DynamicKeymapSetBuffer` for bulk writes
 - **Single device** — one keyboard at a time
-- **No payment processing** — checkout disabled pending payment gateway integration
+- **No shipping address collection** — Stripe Checkout handles payment but shipping details not yet captured
 
 ## Roadmap
 
 ### To Do
 
 **Critical — Blocks Purchasing**
-- [ ] **Checkout & payment** — Stripe integration, shipping address collection, tax calculation, order confirmation flow
+- [x] **Checkout & payment** — Stripe Checkout (hosted), webhook-confirmed orders, confirmation emails
+- [ ] **Shipping address collection** — Capture shipping details during checkout, tax calculation
 - [x] **Product images** — Real product photos with gallery and thumbnail strip (zoom TBD)
 - [ ] **Order status management** — Admin ability to update status (confirmed/shipped/delivered), tracking numbers, shipping notification emails
 
@@ -378,10 +387,27 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 8 — UX Polish**: Per-page browser tab titles, custom 404/error page, site footer (privacy policy, terms of service, contact), inline personal stats on typing test page, mobile responsive navigation (hamburger menu below 640px), Miami Nights as default theme, per-theme button borders, graceful shutdown (db.close on SIGTERM, SHUTDOWN_TIMEOUT=3)
 - [x] **Phase 9 — Security Hardening II**: Password change endpoint (invalidates other sessions), account deletion (GDPR right to erasure), CSRF protection (Origin header checking), leaderboard query param validation, nginx request body size limit (1MB), max 5 sessions per user, account lockout (5 failures = 15min, 10 = 1hr), security event logging (login/lockout/password change/deletion with IP)
 - [x] **Phase 10 — Product Photos & Pricing**: Real product photos with image gallery, color surcharge system (ColorOption type, end-to-end pricing), stabilizer pricing, server-side price validation for all options, kiosk stats dashboard
+- [x] **Phase 11 — Stripe Checkout**: Stripe Checkout (hosted) integration, webhook-confirmed orders with signature verification, idempotent payment processing, stale pending order cleanup, Miami Nights logo exports
 
 ## Changelog
 
 ### 2026-02-17
+
+**Stripe Checkout integration**
+- Added Stripe Checkout (hosted) — full page redirect to Stripe's payment page, no card UI to build
+- `POST /api/checkout`: creates pending order (reuses existing price validation), builds Stripe Checkout Session with `price_data` line items, returns redirect URL
+- `POST /api/webhooks/stripe`: signature-verified webhook handler for `checkout.session.completed` — marks order as paid, stores PaymentIntent ID, sends confirmation email
+- Idempotent webhook: skips duplicate deliveries if order already paid
+- CSRF bypass for webhook path (authenticated by Stripe signature verification instead)
+- DB migration: `stripe_session_id` + `stripe_payment_intent` columns on orders table with index
+- Stale pending order cleanup: hourly job deletes pending orders older than 24h (abandoned checkouts)
+- Cart page: green "Checkout" button with auth check, loading state, error display
+- Success page (`/store/checkout/success`): clears cart, shows confirmation, links to order detail
+- Lazy Stripe client init to avoid build-time crash when env var not set
+
+**Brand assets**
+- Exported Miami Nights TypeArt logo: transparent PNG, dark background PNG, and SVG
+- Courier Prime Bold Italic, per-letter neon colors: cyan `#0AD2D3`, blue `#00D4FF`, violet `#B537F2`, pink `#FF2E97`
 
 **Product photos & image gallery**
 - Added real product photos: Type 40 (5 images) and Type QAZ (3 images) in `static/images/products/{slug}/`

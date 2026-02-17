@@ -166,6 +166,59 @@ export function getOrders(userId: string): OrderRow[] {
 		.all(userId) as OrderRow[];
 }
 
+export function setStripeSessionId(orderId: string, sessionId: string): void {
+	db.prepare('UPDATE orders SET stripe_session_id = ? WHERE id = ?').run(sessionId, orderId);
+}
+
+export function updateOrderPayment(orderId: string, status: string, paymentIntent: string): void {
+	db.prepare('UPDATE orders SET status = ?, stripe_payment_intent = ? WHERE id = ?').run(
+		status,
+		paymentIntent,
+		orderId
+	);
+}
+
+export function getOrderById(orderId: string): (OrderDetail & { user_id: string }) | null {
+	const order = db
+		.prepare(
+			`SELECT id, user_id, status, total_cents, created_at
+			 FROM orders WHERE id = ?`
+		)
+		.get(orderId) as (Omit<OrderDetail, 'items'> & { user_id: string }) | undefined;
+
+	if (!order) return null;
+
+	const items = db
+		.prepare(
+			`SELECT id, product_slug, product_name, base_price_cents, color,
+			        color_surcharge_cents, stabilizer_name, stabilizer_price_cents,
+			        wrist_rest, wrist_rest_price_cents, quantity
+			 FROM order_items WHERE order_id = ?
+			 ORDER BY product_name`
+		)
+		.all(orderId) as OrderItemRow[];
+
+	return { ...order, items };
+}
+
+export function getOrderByStripeSession(
+	sessionId: string
+): { id: string; user_id: string; status: string; total_cents: number } | null {
+	return (
+		(db
+			.prepare('SELECT id, user_id, status, total_cents FROM orders WHERE stripe_session_id = ?')
+			.get(sessionId) as
+			| { id: string; user_id: string; status: string; total_cents: number }
+			| undefined) ?? null
+	);
+}
+
+export function cleanStalePendingOrders(): void {
+	db.prepare(
+		`DELETE FROM orders WHERE status = 'pending' AND created_at < datetime('now', '-24 hours')`
+	).run();
+}
+
 export function getOrder(userId: string, orderId: string): OrderDetail | null {
 	const order = db
 		.prepare(

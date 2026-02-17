@@ -27,12 +27,11 @@
 		<div class="cart-items">
 			{#each cartStore.items as item (item.id)}
 				<div class="cart-item">
-					<div class="item-color" style:background-color={
-						item.color === 'Galaxy Black' ? '#1a1a2e' :
-						item.color === 'Void Purple' ? '#4a1a6b' :
-						item.color === 'Translucent' ? 'rgba(200, 200, 220, 0.4)' :
-						'var(--base01)'
-					}></div>
+					<img
+						class="item-thumb"
+						src="/images/products/{item.productSlug}/1.jpg"
+						alt={item.productName}
+					/>
 					<div class="item-details">
 						<span class="item-name">{item.productName}</span>
 						<span class="item-variants">
@@ -120,9 +119,10 @@
 		background-color: var(--base02);
 	}
 
-	.item-color {
-		width: 32px;
-		height: 32px;
+	.item-thumb {
+		width: 48px;
+		height: 48px;
+		object-fit: cover;
 		border-radius: var(--radius-sm);
 		flex-shrink: 0;
 	}

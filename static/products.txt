@@ -2,40 +2,40 @@
 
 name: Type 40
 slug: type-40
-tagline: 40% ortholinear — pure grid, pure focus
-description: A compact 40% ortholinear keyboard kit. 48 keys in a 4x12 grid. Hot-swap sockets, USB-C, and full QMK/VIA support.
+tagline: 40% staggered — rotary encoder, arrow keys, gasket mount
+description: A compact 40% staggered keyboard kit with a rotary encoder knob and dedicated arrow keys. Gummy o-ring gasket mount, 2mm PORON foam dampener, hot-swap sockets, USB-C, and full QMK/VIA programmability. 3D-printed PLA case.
 price: 89.00
 placeholder-color: #268bd2
+images: 5
 
 colors:
-  - Slate Black
-  - Arctic White
-  - Navy Blue
+  - Galaxy Black | 0.00
+  - Void Purple | 0.00
+  - Translucent | 20.00
 
 stabilizers:
-  - Cherry clip-in | 0.00
-  - Durock V2 screw-in | 5.00
-  - Staebies V2 screw-in | 12.00
+  - None | 0.00
+  - Durock V3 screw-in | 15.00
 
-wrist-rest: 29.00
+wrist-rest: 19.00
 
 ---
 
 name: Type QAZ
 slug: type-qaz
-tagline: 35% staggered — minimal, maximal intent
-description: An ultra-compact 35-key staggered layout. No compromises on build quality. Hot-swap sockets, USB-C, and full QMK/VIA support.
+tagline: 35% staggered — ultra-compact, gasket mount, 2mm PORON
+description: An ultra-compact 36-key QAZ staggered layout. Gasket mount with ultra-thick 2mm PORON foam dampening, hot-swap sockets, USB-C, and full QMK/VIA programmability. 3D-printed PLA case.
 price: 79.00
 placeholder-color: #d33682
+images: 3
 
 colors:
-  - Slate Black
-  - Arctic White
-  - Forest Green
+  - Galaxy Black | 0.00
+  - Void Purple | 0.00
+  - Translucent | 20.00
 
 stabilizers:
-  - Cherry clip-in | 0.00
-  - Durock V2 screw-in | 5.00
-  - Staebies V2 screw-in | 12.00
+  - None | 0.00
+  - Durock V3 screw-in | 15.00
 
-wrist-rest: 25.00
+wrist-rest: 19.00

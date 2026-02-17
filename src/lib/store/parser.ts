@@ -1,4 +1,4 @@
-import type { Product, StabilizerOption } from './types.js';
+import type { Product, ColorOption, StabilizerOption } from './types.js';
 
 /**
  * Parse the products.txt format into Product objects.
@@ -66,9 +66,18 @@ function parseBlock(block: string): Product | null {
 		description: fields['description'] ?? '',
 		price: parseFloat(fields['price'] ?? '0'),
 		placeholderColor: fields['placeholder-color'] ?? '#839496',
-		colors: lists['colors'] ?? [],
+		imageCount: parseInt(fields['images'] ?? '0', 10) || 0,
+		colors: (lists['colors'] ?? []).map(parseColor),
 		stabilizers: (lists['stabilizers'] ?? []).map(parseStabilizer),
 		wristRestPrice: parseFloat(fields['wrist-rest'] ?? '0')
+	};
+}
+
+function parseColor(raw: string): ColorOption {
+	const parts = raw.split('|').map((s) => s.trim());
+	return {
+		name: parts[0],
+		price: parts.length > 1 ? parseFloat(parts[1]) : 0
 	};
 }
 

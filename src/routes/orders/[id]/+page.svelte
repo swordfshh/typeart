@@ -10,6 +10,7 @@
 		product_name: string;
 		base_price_cents: number;
 		color: string;
+		color_surcharge_cents: number;
 		stabilizer_name: string;
 		stabilizer_price_cents: number;
 		wrist_rest: number;
@@ -61,8 +62,8 @@
 	}
 
 	function itemLineCents(item: OrderItem): number {
-		const unit = item.base_price_cents + item.stabilizer_price_cents +
-			(item.wrist_rest ? item.wrist_rest_price_cents : 0);
+		const unit = item.base_price_cents + (item.color_surcharge_cents ?? 0) +
+			item.stabilizer_price_cents + (item.wrist_rest ? item.wrist_rest_price_cents : 0);
 		return unit * item.quantity;
 	}
 
@@ -75,10 +76,9 @@
 	}
 
 	const colorMap: Record<string, string> = {
-		'Slate Black': '#2d3436',
-		'Arctic White': '#dfe6e9',
-		'Navy Blue': '#268bd2',
-		'Forest Green': '#859900'
+		'Galaxy Black': '#1a1a2e',
+		'Void Purple': '#4a1a6b',
+		'Translucent': 'rgba(200, 200, 220, 0.4)'
 	};
 </script>
 

@@ -1,3 +1,8 @@
+export interface ColorOption {
+	name: string;
+	price: number;
+}
+
 export interface StabilizerOption {
 	name: string;
 	price: number;
@@ -10,13 +15,14 @@ export interface Product {
 	description: string;
 	price: number;
 	placeholderColor: string;
-	colors: string[];
+	imageCount: number;
+	colors: ColorOption[];
 	stabilizers: StabilizerOption[];
 	wristRestPrice: number;
 }
 
 export interface VariantSelection {
-	color: string;
+	color: ColorOption;
 	stabilizer: StabilizerOption;
 	wristRest: boolean;
 }
@@ -27,6 +33,7 @@ export interface CartItem {
 	productName: string;
 	basePrice: number;
 	color: string;
+	colorPrice: number;
 	stabilizer: StabilizerOption;
 	wristRest: boolean;
 	wristRestPrice: number;

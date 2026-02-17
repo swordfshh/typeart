@@ -17,7 +17,7 @@ class CartStore {
 	get totalPrice(): number {
 		return this.items.reduce((sum, item) => {
 			const unitPrice =
-				item.basePrice + item.stabilizer.price + (item.wristRest ? item.wristRestPrice : 0);
+				item.basePrice + (item.colorPrice ?? 0) + item.stabilizer.price + (item.wristRest ? item.wristRestPrice : 0);
 			return sum + unitPrice * item.quantity;
 		}, 0);
 	}
@@ -34,7 +34,8 @@ class CartStore {
 				productSlug: product.slug,
 				productName: product.name,
 				basePrice: product.price,
-				color: variants.color,
+				color: variants.color.name,
+				colorPrice: variants.color.price,
 				stabilizer: variants.stabilizer,
 				wristRest: variants.wristRest,
 				wristRestPrice: product.wristRestPrice,
@@ -91,7 +92,7 @@ class CartStore {
 }
 
 function buildId(slug: string, v: VariantSelection): string {
-	return `${slug}|${v.color}|${v.stabilizer.name}|${v.wristRest}`;
+	return `${slug}|${v.color.name}|${v.stabilizer.name}|${v.wristRest}`;
 }
 
 export const cartStore = new CartStore();

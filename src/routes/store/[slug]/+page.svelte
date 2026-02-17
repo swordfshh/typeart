@@ -2,26 +2,40 @@
 	import { onMount } from 'svelte';
 	import VariantSelector from '../../../components/VariantSelector.svelte';
 	import { cartStore } from '$lib/stores/cart.svelte.js';
-	import type { StabilizerOption } from '$lib/store/types.js';
+	import type { ColorOption, StabilizerOption } from '$lib/store/types.js';
 
 	let { data } = $props();
 
 	let product = $derived(data.product);
+	let colorOptions = $derived(
+		product.colors.map(
+			(c: ColorOption) => `${c.name}${c.price > 0 ? ` (+$${c.price.toFixed(2)})` : ''}`
+		)
+	);
 	let stabOptions = $derived(
 		product.stabilizers.map(
-			(s) => `${s.name}${s.price > 0 ? ` (+$${s.price.toFixed(2)})` : ''}`
+			(s: StabilizerOption) => `${s.name}${s.price > 0 ? ` (+$${s.price.toFixed(2)})` : ''}`
 		)
 	);
 
-	let selectedColor = $state(product.colors[0] ?? '');
+	let selectedColorIndex = $state(0);
 	let selectedStabIndex = $state(0);
 	let wristRest = $state(false);
 	let added = $state(false);
+	let activeImage = $state(0);
 
+	const images = $derived(
+		Array.from({ length: product.imageCount }, (_, i) =>
+			`/images/products/${product.slug}/${i + 1}.jpg`
+		)
+	);
+
+	let selectedColor: ColorOption = $derived(product.colors[selectedColorIndex]);
 	let selectedStab: StabilizerOption = $derived(product.stabilizers[selectedStabIndex]);
 
 	let totalPrice: number = $derived(
 		product.price +
+			(selectedColor?.price ?? 0) +
 			(selectedStab?.price ?? 0) +
 			(wristRest ? product.wristRestPrice : 0)
 	);
@@ -50,7 +64,28 @@
 
 	<div class="product-layout">
 		<div class="product-image">
-			<div class="placeholder" style:background-color={product.placeholderColor}></div>
+			{#if images.length > 0}
+				<img
+					src={images[activeImage]}
+					alt="{product.name} — photo {activeImage + 1}"
+					class="main-image"
+				/>
+				{#if images.length > 1}
+					<div class="thumbnails">
+						{#each images as src, i}
+							<button
+								class="thumb"
+								class:active={activeImage === i}
+								onclick={() => (activeImage = i)}
+							>
+								<img src={src} alt="{product.name} thumbnail {i + 1}" loading="lazy" />
+							</button>
+						{/each}
+					</div>
+				{/if}
+			{:else}
+				<div class="placeholder" style:background-color={product.placeholderColor}></div>
+			{/if}
 		</div>
 
 		<div class="product-info">
@@ -62,9 +97,9 @@
 				{#if product.colors.length > 0}
 					<VariantSelector
 						label="Color"
-						options={product.colors}
-						value={selectedColor}
-						onchange={(v) => (selectedColor = v)}
+						options={colorOptions}
+						value={colorOptions[selectedColorIndex]}
+						onchange={(v) => (selectedColorIndex = colorOptions.indexOf(v))}
 					/>
 				{/if}
 
@@ -125,6 +160,48 @@
 		.product-layout {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	.main-image {
+		aspect-ratio: 4 / 3;
+		width: 100%;
+		object-fit: cover;
+		border-radius: var(--radius-lg);
+		display: block;
+	}
+
+	.thumbnails {
+		display: flex;
+		gap: 8px;
+		margin-top: 8px;
+	}
+
+	.thumb {
+		flex: 1;
+		padding: 0;
+		border: 2px solid transparent;
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		opacity: 0.5;
+		transition: opacity 150ms ease, border-color 150ms ease;
+		cursor: pointer;
+		background: none;
+	}
+
+	.thumb:hover {
+		opacity: 0.8;
+	}
+
+	.thumb.active {
+		opacity: 1;
+		border-color: var(--blue);
+	}
+
+	.thumb img {
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		object-fit: cover;
+		display: block;
 	}
 
 	.placeholder {

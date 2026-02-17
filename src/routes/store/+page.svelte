@@ -22,6 +22,7 @@
 				tagline={product.tagline}
 				price={product.price}
 				placeholderColor={product.placeholderColor}
+				imageCount={product.imageCount}
 			/>
 		{/each}
 	</div>

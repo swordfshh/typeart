@@ -5,13 +5,23 @@
 		tagline: string;
 		price: number;
 		placeholderColor: string;
+		imageCount: number;
 	}
 
-	let { name, slug, tagline, price, placeholderColor }: Props = $props();
+	let { name, slug, tagline, price, placeholderColor, imageCount }: Props = $props();
 </script>
 
 <a href="/store/{slug}" class="product-card">
-	<div class="placeholder" style:background-color={placeholderColor}></div>
+	{#if imageCount > 0}
+		<img
+			src="/images/products/{slug}/1.jpg"
+			alt={name}
+			class="product-image"
+			loading="lazy"
+		/>
+	{:else}
+		<div class="placeholder" style:background-color={placeholderColor}></div>
+	{/if}
 	<div class="info">
 		<h3 class="product-name">{name}</h3>
 		<p class="product-tagline">{tagline}</p>
@@ -33,6 +43,13 @@
 		text-decoration: none;
 		border-color: var(--blue);
 		box-shadow: var(--shadow-md);
+	}
+
+	.product-image {
+		aspect-ratio: 4 / 3;
+		width: 100%;
+		object-fit: cover;
+		display: block;
 	}
 
 	.placeholder {

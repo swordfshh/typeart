@@ -37,6 +37,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					quantity: item.quantity,
 					lineTotalCents:
 						(item.base_price_cents +
+							(item.color_surcharge_cents ?? 0) +
 							item.stabilizer_price_cents +
 							(item.wrist_rest ? item.wrist_rest_price_cents : 0)) *
 						item.quantity

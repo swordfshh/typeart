@@ -35,6 +35,7 @@ export interface OrderItemRow {
 	product_name: string;
 	base_price_cents: number;
 	color: string;
+	color_surcharge_cents: number;
 	stabilizer_name: string;
 	stabilizer_price_cents: number;
 	wrist_rest: number;
@@ -74,8 +75,12 @@ export function createOrder(userId: string, items: CartItem[]): string {
 		if (!product) {
 			throw new OrderError(`Unknown product: ${item.productSlug}`);
 		}
-		if (!product.colors.includes(item.color)) {
+		const catalogColor = product.colors.find((c) => c.name === item.color);
+		if (!catalogColor) {
 			throw new OrderError(`Invalid color for ${product.name}`);
+		}
+		if (toCents(item.colorPrice ?? 0) !== toCents(catalogColor.price)) {
+			throw new OrderError(`Color price mismatch for ${product.name}`);
 		}
 		if (toCents(item.basePrice) !== toCents(product.price)) {
 			throw new OrderError(`Price mismatch for ${product.name}`);
@@ -103,9 +108,11 @@ export function createOrder(userId: string, items: CartItem[]): string {
 	for (const item of items) {
 		// Use catalog prices, not client-submitted prices
 		const product = productCatalog.get(item.productSlug)!;
+		const catalogColor = product.colors.find((c) => c.name === item.color)!;
 		const catalogStab = product.stabilizers.find((s) => s.name === item.stabilizer.name)!;
 		const unitCents =
 			toCents(product.price) +
+			toCents(catalogColor.price) +
 			toCents(catalogStab.price) +
 			(item.wristRest ? toCents(product.wristRestPrice) : 0);
 		totalCents += unitCents * item.quantity;
@@ -115,8 +122,8 @@ export function createOrder(userId: string, items: CartItem[]): string {
 		'INSERT INTO orders (id, user_id, total_cents) VALUES (?, ?, ?)'
 	);
 	const insertItem = db.prepare(
-		`INSERT INTO order_items (id, order_id, product_slug, product_name, base_price_cents, color, stabilizer_name, stabilizer_price_cents, wrist_rest, wrist_rest_price_cents, quantity)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		`INSERT INTO order_items (id, order_id, product_slug, product_name, base_price_cents, color, color_surcharge_cents, stabilizer_name, stabilizer_price_cents, wrist_rest, wrist_rest_price_cents, quantity)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 
 	const run = db.transaction(() => {
@@ -124,6 +131,7 @@ export function createOrder(userId: string, items: CartItem[]): string {
 		for (const item of items) {
 			// Store catalog-verified prices, not client-submitted values
 			const product = productCatalog.get(item.productSlug)!;
+			const catalogColor = product.colors.find((c) => c.name === item.color)!;
 			const catalogStab = product.stabilizers.find((s) => s.name === item.stabilizer.name)!;
 			insertItem.run(
 				randomUUID(),
@@ -132,6 +140,7 @@ export function createOrder(userId: string, items: CartItem[]): string {
 				product.name,
 				toCents(product.price),
 				item.color,
+				toCents(catalogColor.price),
 				catalogStab.name,
 				toCents(catalogStab.price),
 				item.wristRest ? 1 : 0,
@@ -170,8 +179,8 @@ export function getOrder(userId: string, orderId: string): OrderDetail | null {
 	const items = db
 		.prepare(
 			`SELECT id, product_slug, product_name, base_price_cents, color,
-			        stabilizer_name, stabilizer_price_cents, wrist_rest,
-			        wrist_rest_price_cents, quantity
+			        color_surcharge_cents, stabilizer_name, stabilizer_price_cents,
+			        wrist_rest, wrist_rest_price_cents, quantity
 			 FROM order_items WHERE order_id = ?
 			 ORDER BY product_name`
 		)

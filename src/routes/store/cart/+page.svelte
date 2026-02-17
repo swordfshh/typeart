@@ -7,7 +7,7 @@
 	});
 
 	function itemTotal(item: (typeof cartStore.items)[0]): number {
-		return (item.basePrice + item.stabilizer.price + (item.wristRest ? item.wristRestPrice : 0)) * item.quantity;
+		return (item.basePrice + (item.colorPrice ?? 0) + item.stabilizer.price + (item.wristRest ? item.wristRestPrice : 0)) * item.quantity;
 	}
 </script>
 
@@ -28,10 +28,9 @@
 			{#each cartStore.items as item (item.id)}
 				<div class="cart-item">
 					<div class="item-color" style:background-color={
-						item.color === 'Slate Black' ? '#2d3436' :
-						item.color === 'Arctic White' ? '#dfe6e9' :
-						item.color === 'Navy Blue' ? '#268bd2' :
-						item.color === 'Forest Green' ? '#859900' :
+						item.color === 'Galaxy Black' ? '#1a1a2e' :
+						item.color === 'Void Purple' ? '#4a1a6b' :
+						item.color === 'Translucent' ? 'rgba(200, 200, 220, 0.4)' :
 						'var(--base01)'
 					}></div>
 					<div class="item-details">

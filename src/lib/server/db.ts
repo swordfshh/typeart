@@ -65,6 +65,7 @@ function createDb(): Database.Database {
 			product_name TEXT NOT NULL,
 			base_price_cents INTEGER NOT NULL,
 			color TEXT NOT NULL,
+			color_surcharge_cents INTEGER NOT NULL DEFAULT 0,
 			stabilizer_name TEXT NOT NULL,
 			stabilizer_price_cents INTEGER NOT NULL,
 			wrist_rest INTEGER NOT NULL DEFAULT 0,
@@ -110,6 +111,12 @@ function createDb(): Database.Database {
 		CREATE INDEX IF NOT EXISTS idx_security_logs_event ON security_logs(event);
 		CREATE INDEX IF NOT EXISTS idx_security_logs_created ON security_logs(created_at);
 	`);
+
+	// Migrations for existing databases
+	const cols = db.prepare(`PRAGMA table_info(order_items)`).all() as { name: string }[];
+	if (!cols.some((c) => c.name === 'color_surcharge_cents')) {
+		db.exec(`ALTER TABLE order_items ADD COLUMN color_surcharge_cents INTEGER NOT NULL DEFAULT 0`);
+	}
 
 	return db;
 }

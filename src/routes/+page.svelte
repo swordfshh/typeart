@@ -1,7 +1,7 @@
 <div class="home">
 	<div class="hero">
 		<h1><span class="r1">T</span><span class="r2">y</span><span class="r3">p</span><span class="r4">e</span><span class="r5">A</span><span class="r6">r</span><span class="r7">t</span></h1>
-		<p class="subtitle">Live keymap editor for custom QMK keyboards</p>
+		<p class="subtitle">Unique keyboard kits and configuration tools</p>
 	</div>
 
 	<div class="cards">

@@ -25,7 +25,7 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | Route | Purpose |
 |---|---|
 | `/` | Landing — rainbow-lettered logo, 2×2 nav cards (Store · Configure · Typing Test · Matrix Test) |
-| `/store` | Product grid — keyboard kits with detail pages, variant selection, cart with localStorage |
+| `/store` | Product grid — keyboard kits with photo gallery, color/stabilizer/wrist rest pricing, cart with localStorage |
 | `/configure` | Live keymap editor — connect keyboard, auto-detect definition, click-to-reassign keys, always-visible keycode picker with search/categories/LT-MT builder/"Any" key input |
 | `/test` | Matrix tester — polls switch state at ~60Hz, highlights pressed keys in real time |
 | `/type` | Typing speed test — time/words/quote modes, inline stats + leaderboard toggles in settings bar, score submission + leaderboard on finish |
@@ -188,8 +188,8 @@ src/
 │   │   ├── labels.ts                # getKeycodeLabel (handles all parameterized keycodes)
 │   │   └── parser.ts                # QMK string parser (LT/MT/MO/TG/OSM/hex/named)
 │   ├── store/
-│   │   ├── types.ts                 # Product, CartItem types
-│   │   └── parser.ts                # products.txt line-based parser
+│   │   ├── types.ts                 # Product, ColorOption, StabilizerOption, CartItem types
+│   │   └── parser.ts                # products.txt line-based parser (colors/stabilizers with pricing)
 │   ├── stores/
 │   │   ├── device.svelte.ts         # deviceStore — connection lifecycle
 │   │   ├── keymap.svelte.ts         # keymapStore — 3D keymap, selection, writes
@@ -202,7 +202,7 @@ src/
 │   │   ├── auth.ts                  # register, login, sessions, password change, account deletion (Argon2id, timing-safe, lockout)
 │   │   ├── rate-limit.ts            # SQLite-backed sliding window rate limiter
 │   │   ├── scores.ts               # Score validation (cross-field checks), submission, leaderboard queries
-│   │   ├── orders.ts               # Order creation (transactional, server-side price validation)
+│   │   ├── orders.ts               # Order creation (transactional, server-side price validation incl. color/stabilizer surcharges)
 │   │   ├── email.ts                # Email service (Resend) — password reset, order confirmation
 │   │   └── security-log.ts         # Security event logger (login, lockout, password change, deletion)
 │   └── utils/
@@ -256,8 +256,11 @@ scripts/
 
 static/
 ├── favicon.svg                      # Browser tab icon (TA in Miami Nights cyan/pink)
-├── products.txt                     # Product catalog (line-based format)
+├── products.txt                     # Product catalog (line-based format with color/stabilizer pricing)
 ├── 99-typeart.rules                 # Linux udev rules for HID access
+├── images/products/
+│   ├── type-40/{1-5}.jpg           # Type 40 product photos (compressed 1200×900)
+│   └── type-qaz/{1-3}.jpg          # Type QAZ product photos
 ├── firmware/
 │   ├── lux40v2_via.bin             # VIA-enabled QMK firmware for Lux40v2
 │   └── lux36_via.bin               # VIA-enabled QMK firmware for Lux36
@@ -339,7 +342,7 @@ pnpm build && sudo systemctl restart typeart
 
 **Critical — Blocks Purchasing**
 - [ ] **Checkout & payment** — Stripe integration, shipping address collection, tax calculation, order confirmation flow
-- [ ] **Product images** — Real product photos, gallery with zoom (currently solid-color placeholders)
+- [x] **Product images** — Real product photos with gallery and thumbnail strip (zoom TBD)
 - [ ] **Order status management** — Admin ability to update status (confirmed/shipped/delivered), tracking numbers, shipping notification emails
 
 **High — Trust & Discoverability**
@@ -374,10 +377,38 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 7 — Security Hardening**: Server-side price validation against product catalog, security headers (CSP, X-Frame-Options, HSTS, etc.) in hooks + nginx, Argon2 timing-attack mitigation, generic registration errors, session tokens upgraded to randomBytes(32), SQLite-backed rate limiting, score validation hardening (cross-field checks, WPM cap 250)
 - [x] **Phase 8 — UX Polish**: Per-page browser tab titles, custom 404/error page, site footer (privacy policy, terms of service, contact), inline personal stats on typing test page, mobile responsive navigation (hamburger menu below 640px), Miami Nights as default theme, per-theme button borders, graceful shutdown (db.close on SIGTERM, SHUTDOWN_TIMEOUT=3)
 - [x] **Phase 9 — Security Hardening II**: Password change endpoint (invalidates other sessions), account deletion (GDPR right to erasure), CSRF protection (Origin header checking), leaderboard query param validation, nginx request body size limit (1MB), max 5 sessions per user, account lockout (5 failures = 15min, 10 = 1hr), security event logging (login/lockout/password change/deletion with IP)
+- [x] **Phase 10 — Product Photos & Pricing**: Real product photos with image gallery, color surcharge system (ColorOption type, end-to-end pricing), stabilizer pricing, server-side price validation for all options, kiosk stats dashboard
 
 ## Changelog
 
 ### 2026-02-17
+
+**Product photos & image gallery**
+- Added real product photos: Type 40 (5 images) and Type QAZ (3 images) in `static/images/products/{slug}/`
+- Compressed with ImageMagick (1200×900, quality 82) — originals 1–3MB → 150–230KB each
+- Product detail page: main image + thumbnail strip gallery with click-to-switch
+- `ProductCard.svelte`: shows first product photo when available, falls back to color placeholder
+- Cart page: replaced blank swatch with actual product photo thumbnail
+- Added `imageCount` field to `products.txt` format and parser
+
+**Product catalog updates**
+- Type 40: corrected to staggered layout (was ortholinear), highlighted rotary encoder + arrow keys, 2mm PORON foam, removed illumination mention
+- Color options with pricing: Galaxy Black ($0), Void Purple ($0), Translucent (+$20) — uses `name | price` pipe-delimited format
+- Stabilizer options: None ($0), Durock V3 screw-in (+$15)
+- Wrist rest price updated to $19 for both products
+
+**Color pricing system**
+- New `ColorOption` type (name + price) mirroring existing `StabilizerOption` pattern
+- Parser updated: colors use `name | price` format (same as stabilizers)
+- Cart store: tracks `colorPrice` per item, included in total calculation
+- Product detail page: color selector shows surcharge inline (e.g., "Translucent (+$20.00)")
+- Server-side validation: verifies color name exists in catalog and client price matches
+- DB migration: added `color_surcharge_cents` column to `order_items` (ALTER TABLE for existing DBs)
+- Order detail page and email line totals include color surcharge
+
+**Pricing audit fixes**
+- Fixed color price validation gap: server now rejects orders where `colorPrice` doesn't match catalog
+- Fixed order confirmation email: line total calculation was missing `color_surcharge_cents`
 
 **Kiosk dashboard display**
 - Added `/display` route: full-screen stats dashboard optimized for 7" HDMI display (1024×600)

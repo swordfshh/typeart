@@ -24,6 +24,52 @@
 			}
 		}
 	})}</script>`}
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		"mainEntity": [
+			{
+				"@type": "Question",
+				"name": "What's included in a TypeArt keyboard kit?",
+				"acceptedAnswer": {
+					"@type": "Answer",
+					"text": "Every kit includes a PCB with hot-swap sockets (no soldering), a 3D-printed PLA case, gummy o-ring gasket mount, 2mm PORON foam dampener, and USB-C connectivity. QMK/VIA firmware is pre-flashed. You provide your own MX-compatible switches and keycaps."
+				}
+			},
+			{
+				"@type": "Question",
+				"name": "Do I need to solder to build a TypeArt keyboard?",
+				"acceptedAnswer": {
+					"@type": "Answer",
+					"text": "No. All TypeArt keyboards use hot-swap sockets — just press your switches into the PCB, drop it in the case, add keycaps, and plug in USB-C. Assembly takes about 15 minutes."
+				}
+			},
+			{
+				"@type": "Question",
+				"name": "What switches and keycaps are compatible?",
+				"acceptedAnswer": {
+					"@type": "Answer",
+					"text": "Any MX-compatible switch works: Cherry MX, Gateron, Kailh, or similar 5-pin switches. For keycaps, any MX-stem set will fit. Popular choices include Gateron Milky Yellows (linear), Boba U4T (tactile), and Cherry MX Browns."
+				}
+			},
+			{
+				"@type": "Question",
+				"name": "What firmware do TypeArt keyboards use?",
+				"acceptedAnswer": {
+					"@type": "Answer",
+					"text": "All TypeArt keyboards run QMK firmware with full VIA support. You can remap keys, configure layers, and customize your layout using the browser-based configurator at typeart.co/configure — no reflashing needed."
+				}
+			},
+			{
+				"@type": "Question",
+				"name": "Is shipping free?",
+				"acceptedAnswer": {
+					"@type": "Answer",
+					"text": "Yes, all TypeArt keyboard kits ship free within the United States."
+				}
+			}
+		]
+	})}</script>`}
 </svelte:head>
 
 <div class="about-page">
@@ -31,11 +77,14 @@
 	<p class="lead">We design compact mechanical keyboard kits and free browser-based tools for the keyboard community.</p>
 
 	<figure class="hero-img">
-		<img
-			src="/images/kb/20250113_094108-EDIT.jpg"
-			alt="TypeArt Type 40 compact 40% mechanical keyboard with Japanese keycaps and rotary encoder knob"
-			loading="eager"
-		/>
+		<picture>
+			<source srcset="/images/kb/20250113_094108-EDIT.webp" type="image/webp" />
+			<img
+				src="/images/kb/20250113_094108-EDIT.jpg"
+				alt="TypeArt Type 40 compact 40% mechanical keyboard with Japanese keycaps and rotary encoder knob"
+				loading="eager"
+			/>
+		</picture>
 	</figure>
 
 	<section>
@@ -45,22 +94,28 @@
 
 		<div class="product-cards">
 			<a href="/store/type-40" class="product-link">
-				<img
-					src="/images/products/type-40/1.jpg"
-					alt="Type 40 — 40% staggered mechanical keyboard kit with rotary encoder and arrow keys"
-					loading="lazy"
-				/>
+				<picture>
+					<source srcset="/images/products/type-40/1.webp" type="image/webp" />
+					<img
+						src="/images/products/type-40/1.jpg"
+						alt="Type 40 — 40% staggered mechanical keyboard kit with rotary encoder and arrow keys"
+						loading="lazy"
+					/>
+				</picture>
 				<div class="product-link-info">
 					<strong>Type 40</strong>
 					<span>40% staggered layout with rotary encoder knob and dedicated arrow keys. The daily driver for people who want compact without giving up navigation.</span>
 				</div>
 			</a>
 			<a href="/store/type-qaz" class="product-link">
-				<img
-					src="/images/products/type-qaz/1.jpg"
-					alt="Type QAZ — ultra-compact 35% QAZ staggered mechanical keyboard kit"
-					loading="lazy"
-				/>
+				<picture>
+					<source srcset="/images/products/type-qaz/1.webp" type="image/webp" />
+					<img
+						src="/images/products/type-qaz/1.jpg"
+						alt="Type QAZ — ultra-compact 35% QAZ staggered mechanical keyboard kit"
+						loading="lazy"
+					/>
+				</picture>
 				<div class="product-link-info">
 					<strong>Type QAZ</strong>
 					<span>36-key QAZ staggered layout. Ultra-compact for layer-heavy typists who want the smallest possible board that's still comfortable.</span>
@@ -84,11 +139,14 @@
 		</ul>
 
 		<figure>
-			<img
-				src="/images/kb/20250126_100623.jpg"
-				alt="TypeArt Type 40 mechanical keyboard with matching wrist rests on a desk"
-				loading="lazy"
-			/>
+			<picture>
+				<source srcset="/images/kb/20250126_100623.webp" type="image/webp" />
+				<img
+					src="/images/kb/20250126_100623.jpg"
+					alt="TypeArt Type 40 mechanical keyboard with matching wrist rests on a desk"
+					loading="lazy"
+				/>
+			</picture>
 			<figcaption>Type 40 with matching wrist rests</figcaption>
 		</figure>
 	</section>
@@ -105,11 +163,14 @@
 		<p>Once built, use our <a href="/configure">keymap configurator</a> to remap keys, set up layers, and customize your layout — all from your browser over WebHID, no reflashing needed.</p>
 
 		<figure>
-			<img
-				src="/images/kb/20250119_230953.jpg"
-				alt="TypeArt Type 40 mechanical keyboard with backlit keycaps under purple ambient lighting"
-				loading="lazy"
-			/>
+			<picture>
+				<source srcset="/images/kb/20250119_230953.webp" type="image/webp" />
+				<img
+					src="/images/kb/20250119_230953.jpg"
+					alt="TypeArt Type 40 mechanical keyboard with backlit keycaps under purple ambient lighting"
+					loading="lazy"
+				/>
+			</picture>
 			<figcaption>Type 40 in Galaxy Black</figcaption>
 		</figure>
 	</section>
@@ -120,11 +181,14 @@
 		<p>It takes a day or two to adjust. After that, full-size boards feel like reaching across a table. The Type 40 keeps arrow keys and a rotary encoder for people who want that. The Type QAZ goes all-in on minimalism for typists who are comfortable with layers.</p>
 
 		<figure>
-			<img
-				src="/images/kb/20250629_172716.jpg"
-				alt="TypeArt Type QAZ ultra-compact 35% keyboard in Void Purple 3D-printed case"
-				loading="lazy"
-			/>
+			<picture>
+				<source srcset="/images/kb/20250629_172716.webp" type="image/webp" />
+				<img
+					src="/images/kb/20250629_172716.jpg"
+					alt="TypeArt Type QAZ ultra-compact 35% keyboard in Void Purple 3D-printed case"
+					loading="lazy"
+				/>
+			</picture>
 			<figcaption>Type QAZ in Void Purple</figcaption>
 		</figure>
 	</section>

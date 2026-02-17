@@ -62,11 +62,14 @@
 		<div class="cart-items">
 			{#each cartStore.items as item (item.id)}
 				<div class="cart-item">
-					<img
-						class="item-thumb"
-						src="/images/products/{item.productSlug}/1.jpg"
-						alt={item.productName}
-					/>
+					<picture>
+						<source srcset="/images/products/{item.productSlug}/1.webp" type="image/webp" />
+						<img
+							class="item-thumb"
+							src="/images/products/{item.productSlug}/1.jpg"
+							alt={item.productName}
+						/>
+					</picture>
 					<div class="item-details">
 						<span class="item-name">{item.productName}</span>
 						<span class="item-variants">

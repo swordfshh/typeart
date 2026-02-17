@@ -26,9 +26,10 @@
 	let activeImage = $state(0);
 
 	const images = $derived(
-		Array.from({ length: product.imageCount }, (_, i) =>
-			`/images/products/${product.slug}/${i + 1}.jpg`
-		)
+		Array.from({ length: product.imageCount }, (_, i) => ({
+			jpg: `/images/products/${product.slug}/${i + 1}.jpg`,
+			webp: `/images/products/${product.slug}/${i + 1}.webp`
+		}))
 	);
 
 	let selectedColor: ColorOption = $derived(product.colors[selectedColorIndex]);
@@ -96,6 +97,15 @@
 			}
 		}
 	})}</script>`}
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		"itemListElement": [
+			{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://typeart.co" },
+			{ "@type": "ListItem", "position": 2, "name": "Store", "item": "https://typeart.co/store" },
+			{ "@type": "ListItem", "position": 3, "name": product.name, "item": `https://typeart.co/store/${product.slug}` }
+		]
+	})}</script>`}
 </svelte:head>
 
 <div class="product-detail">
@@ -104,20 +114,26 @@
 	<div class="product-layout">
 		<div class="product-image">
 			{#if images.length > 0}
-				<img
-					src={images[activeImage]}
-					alt="{product.name} compact mechanical keyboard kit — {product.tagline}"
-					class="main-image"
-				/>
+				<picture>
+					<source srcset={images[activeImage].webp} type="image/webp" />
+					<img
+						src={images[activeImage].jpg}
+						alt="{product.name} compact mechanical keyboard kit — {product.tagline}"
+						class="main-image"
+					/>
+				</picture>
 				{#if images.length > 1}
 					<div class="thumbnails">
-						{#each images as src, i}
+						{#each images as img, i}
 							<button
 								class="thumb"
 								class:active={activeImage === i}
 								onclick={() => (activeImage = i)}
 							>
-								<img src={src} alt="{product.name} mechanical keyboard kit — view {i + 1}" loading="lazy" />
+								<picture>
+									<source srcset={img.webp} type="image/webp" />
+									<img src={img.jpg} alt="{product.name} mechanical keyboard kit — view {i + 1}" loading="lazy" />
+								</picture>
 							</button>
 						{/each}
 					</div>

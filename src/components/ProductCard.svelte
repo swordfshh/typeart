@@ -13,12 +13,15 @@
 
 <a href="/store/{slug}" class="product-card">
 	{#if imageCount > 0}
-		<img
-			src="/images/products/{slug}/1.jpg"
-			alt="{name} compact mechanical keyboard kit — {tagline}"
-			class="product-image"
-			loading="lazy"
-		/>
+		<picture>
+			<source srcset="/images/products/{slug}/1.webp" type="image/webp" />
+			<img
+				src="/images/products/{slug}/1.jpg"
+				alt="{name} compact mechanical keyboard kit — {tagline}"
+				class="product-image"
+				loading="lazy"
+			/>
+		</picture>
 	{:else}
 		<div class="placeholder" style:background-color={placeholderColor}></div>
 	{/if}

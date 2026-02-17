@@ -69,6 +69,55 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
 	});
 }
 
+// --- Shipping notification ---
+
+const TRACKING_URLS: Record<string, (n: string) => string> = {
+	USPS: (n) => `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(n)}`,
+	UPS: (n) => `https://www.ups.com/track?tracknum=${encodeURIComponent(n)}`,
+	FedEx: (n) => `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(n)}`
+};
+
+export async function sendShippingNotificationEmail(
+	email: string,
+	orderId: string,
+	trackingNumber: string,
+	carrier: string
+): Promise<boolean> {
+	const trackingUrl = TRACKING_URLS[carrier]?.(trackingNumber);
+	const trackingLink = trackingUrl
+		? `<a href="${trackingUrl}" style="color: #009DDC; text-decoration: underline;">${trackingNumber}</a>`
+		: `<span style="font-family: 'Courier New', monospace;">${trackingNumber}</span>`;
+
+	return sendEmail({
+		to: email,
+		subject: `Your TypeArt order has shipped — ${orderId.slice(0, 8)}`,
+		html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #2A1E0E; background: #F2EAD8;">
+	<h2 style="margin-bottom: 4px;">Your order has shipped!</h2>
+	<p style="font-size: 13px; color: #8A7A5F; margin-bottom: 24px; font-family: 'Courier New', monospace;">Order ${orderId.slice(0, 8)}</p>
+	<div style="padding: 16px; background: #E8DCC6; border-radius: 4px; margin-bottom: 24px;">
+		<p style="margin: 0 0 8px; font-weight: 600; font-size: 14px;">Tracking</p>
+		<p style="margin: 0; font-size: 14px; color: #4D3F2A;">
+			${carrier}: ${trackingLink}
+		</p>
+	</div>
+	<p style="font-size: 14px; color: #4D3F2A; margin-bottom: 24px;">
+		Your keyboard is on its way. You can track your package using the link above.
+	</p>
+	<a href="${BASE_URL}/orders/${orderId}"
+	   style="display: inline-block; padding: 12px 24px; background: #009DDC; color: #fff; text-decoration: none; border-radius: 4px; font-weight: 600;">
+		View Order
+	</a>
+	<p style="margin-top: 24px; font-size: 13px; color: #8A7A5F;">
+		Thank you for choosing TypeArt.
+	</p>
+</body>
+</html>`
+	});
+}
+
 // --- Order confirmation ---
 
 export interface OrderEmailItem {

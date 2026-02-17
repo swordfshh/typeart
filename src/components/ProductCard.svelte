@@ -25,7 +25,7 @@
 	<div class="info">
 		<h3 class="product-name">{name}</h3>
 		<p class="product-tagline">{tagline}</p>
-		<p class="product-price">${price.toFixed(2)}</p>
+		<p class="product-price">${price.toFixed(2)} <span class="free-ship">Free shipping</span></p>
 	</div>
 </a>
 
@@ -78,5 +78,11 @@
 		font-size: 1rem;
 		font-weight: 600;
 		color: var(--green);
+	}
+
+	.free-ship {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--base00);
 	}
 </style>

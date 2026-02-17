@@ -90,6 +90,9 @@
 						<div class="account-dropdown">
 							<a href="/orders" class="dropdown-item" onclick={closeAccount}>Orders</a>
 							<a href="/settings" class="dropdown-item" onclick={closeAccount}>Settings</a>
+							{#if data.isAdmin}
+								<a href="/admin/orders" class="dropdown-item" onclick={closeAccount}>Admin</a>
+							{/if}
 							<button class="dropdown-item" onclick={() => { closeAccount(); authStore.logout(); }}>Log out</button>
 						</div>
 					{/if}
@@ -115,6 +118,9 @@
 			{#if authStore.loggedIn}
 				<a href="/orders" onclick={closeMenu}>Orders</a>
 				<a href="/settings" onclick={closeMenu}>Settings</a>
+				{#if data.isAdmin}
+					<a href="/admin/orders" onclick={closeMenu}>Admin</a>
+				{/if}
 				<button onclick={() => { closeMenu(); authStore.logout(); }}>Log out</button>
 			{:else}
 				<a href="/login" onclick={closeMenu}>Log in</a>

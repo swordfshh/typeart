@@ -4,7 +4,7 @@ name: Type 40
 slug: type-40
 tagline: 40% staggered — rotary encoder, arrow keys, gasket mount
 description: A compact 40% staggered keyboard kit with a rotary encoder knob and dedicated arrow keys. Gummy o-ring gasket mount, 2mm PORON foam dampener, hot-swap sockets, USB-C, and full QMK/VIA programmability. 3D-printed PLA case.
-price: 89.00
+price: 99.00
 placeholder-color: #268bd2
 images: 5
 
@@ -25,7 +25,7 @@ name: Type QAZ
 slug: type-qaz
 tagline: 35% staggered — ultra-compact, gasket mount, 2mm PORON
 description: An ultra-compact 36-key QAZ staggered layout. Gasket mount with ultra-thick 2mm PORON foam dampening, hot-swap sockets, USB-C, and full QMK/VIA programmability. 3D-printed PLA case.
-price: 79.00
+price: 89.00
 placeholder-color: #d33682
 images: 3
 

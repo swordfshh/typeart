@@ -33,6 +33,8 @@
 		status: string;
 		total_cents: number;
 		created_at: string;
+		tracking_number: string | null;
+		tracking_carrier: string | null;
 		shipping: ShippingAddress | null;
 		items: OrderItem[];
 	}
@@ -86,6 +88,15 @@
 		return status.charAt(0).toUpperCase() + status.slice(1);
 	}
 
+	function trackingUrl(carrier: string, num: string): string | null {
+		const urls: Record<string, (n: string) => string> = {
+			USPS: (n) => `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(n)}`,
+			UPS: (n) => `https://www.ups.com/track?tracknum=${encodeURIComponent(n)}`,
+			FedEx: (n) => `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(n)}`
+		};
+		return urls[carrier]?.(num) ?? null;
+	}
+
 	const colorMap: Record<string, string> = {
 		'Galaxy Black': '#1a1a2e',
 		'Void Purple': '#4a1a6b',
@@ -137,6 +148,21 @@
 					{order.shipping.line1}
 					{#if order.shipping.line2}<br>{order.shipping.line2}{/if}<br>
 					{order.shipping.city}, {order.shipping.state} {order.shipping.postalCode}
+				</p>
+			</div>
+		{/if}
+
+		{#if order.tracking_number}
+			{@const tUrl = trackingUrl(order.tracking_carrier || '', order.tracking_number)}
+			<div class="tracking-section">
+				<h3>Tracking</h3>
+				<p class="tracking-info">
+					{order.tracking_carrier}:
+					{#if tUrl}
+						<a href={tUrl} target="_blank" rel="noopener" class="tracking-link">{order.tracking_number}</a>
+					{:else}
+						<span class="tracking-num">{order.tracking_number}</span>
+					{/if}
 				</p>
 			</div>
 		{/if}
@@ -212,6 +238,11 @@
 	.order-status[data-status="shipped"] {
 		background-color: color-mix(in srgb, var(--blue) 20%, transparent);
 		color: var(--blue);
+	}
+
+	.order-status[data-status="delivered"] {
+		background-color: color-mix(in srgb, var(--cyan) 20%, transparent);
+		color: var(--cyan);
 	}
 
 	.order-date {
@@ -298,6 +329,36 @@
 		font-size: 0.875rem;
 		color: var(--base0);
 		line-height: 1.5;
+	}
+
+	.tracking-section {
+		margin-top: 24px;
+		padding: 16px;
+		background-color: var(--base02);
+		border-radius: var(--radius-lg);
+	}
+
+	.tracking-section h3 {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--base00);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: 8px;
+	}
+
+	.tracking-info {
+		font-size: 0.875rem;
+		color: var(--base0);
+	}
+
+	.tracking-link {
+		color: var(--blue);
+		font-family: 'Courier Prime', monospace;
+	}
+
+	.tracking-num {
+		font-family: 'Courier Prime', monospace;
 	}
 
 	.order-footer {

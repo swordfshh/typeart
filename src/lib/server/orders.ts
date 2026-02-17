@@ -36,6 +36,11 @@ export interface OrderDetail {
 	status: string;
 	total_cents: number;
 	created_at: string;
+	tracking_number: string | null;
+	tracking_carrier: string | null;
+	confirmed_at: string | null;
+	shipped_at: string | null;
+	delivered_at: string | null;
 	shipping: ShippingAddress | null;
 	items: OrderItemRow[];
 }
@@ -243,6 +248,11 @@ interface OrderDbRow {
 	total_cents: number;
 	created_at: string;
 	user_id?: string;
+	tracking_number: string | null;
+	tracking_carrier: string | null;
+	confirmed_at: string | null;
+	shipped_at: string | null;
+	delivered_at: string | null;
 	shipping_name: string | null;
 	shipping_address_line1: string | null;
 	shipping_address_line2: string | null;
@@ -282,6 +292,7 @@ export function getOrderById(orderId: string): (OrderDetail & { user_id: string 
 	const row = db
 		.prepare(
 			`SELECT id, user_id, status, total_cents, created_at,
+			        tracking_number, tracking_carrier, confirmed_at, shipped_at, delivered_at,
 			        shipping_name, shipping_address_line1, shipping_address_line2,
 			        shipping_city, shipping_state, shipping_postal_code, shipping_country
 			 FROM orders WHERE id = ?`
@@ -303,6 +314,8 @@ export function getOrderById(orderId: string): (OrderDetail & { user_id: string 
 	return {
 		id: row.id, user_id: row.user_id, status: row.status,
 		total_cents: row.total_cents, created_at: row.created_at,
+		tracking_number: row.tracking_number, tracking_carrier: row.tracking_carrier,
+		confirmed_at: row.confirmed_at, shipped_at: row.shipped_at, delivered_at: row.delivered_at,
 		shipping: buildShipping(row), items
 	};
 }
@@ -338,6 +351,7 @@ export function getOrder(userId: string, orderId: string): OrderDetail | null {
 	const row = db
 		.prepare(
 			`SELECT id, status, total_cents, created_at,
+			        tracking_number, tracking_carrier, confirmed_at, shipped_at, delivered_at,
 			        shipping_name, shipping_address_line1, shipping_address_line2,
 			        shipping_city, shipping_state, shipping_postal_code, shipping_country
 			 FROM orders WHERE id = ? AND user_id = ?`
@@ -358,6 +372,115 @@ export function getOrder(userId: string, orderId: string): OrderDetail | null {
 
 	return {
 		id: row.id, status: row.status, total_cents: row.total_cents,
-		created_at: row.created_at, shipping: buildShipping(row), items
+		created_at: row.created_at,
+		tracking_number: row.tracking_number, tracking_carrier: row.tracking_carrier,
+		confirmed_at: row.confirmed_at, shipped_at: row.shipped_at, delivered_at: row.delivered_at,
+		shipping: buildShipping(row), items
 	};
+}
+
+// --- Admin order management ---
+
+export interface AdminOrderRow {
+	id: string;
+	status: string;
+	total_cents: number;
+	item_count: number;
+	created_at: string;
+	username: string;
+	email: string;
+	shipping_name: string | null;
+	shipping_city: string | null;
+	shipping_state: string | null;
+}
+
+const VALID_STATUSES = ['paid', 'confirmed', 'shipped', 'delivered'] as const;
+type OrderStatus = (typeof VALID_STATUSES)[number];
+
+const STATUS_ORDER: Record<string, number> = {
+	paid: 0,
+	confirmed: 1,
+	shipped: 2,
+	delivered: 3
+};
+
+export function getAllOrders(statusFilter?: string): AdminOrderRow[] {
+	const params: string[] = [];
+	let where = "WHERE o.status != 'pending'";
+	if (statusFilter && VALID_STATUSES.includes(statusFilter as OrderStatus)) {
+		where = 'WHERE o.status = ?';
+		params.push(statusFilter);
+	}
+
+	return db
+		.prepare(
+			`SELECT o.id, o.status, o.total_cents, o.created_at,
+			        (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count,
+			        u.username, u.email,
+			        o.shipping_name, o.shipping_city, o.shipping_state
+			 FROM orders o
+			 JOIN users u ON o.user_id = u.id
+			 ${where}
+			 ORDER BY o.created_at DESC`
+		)
+		.all(...params) as AdminOrderRow[];
+}
+
+export function updateOrderStatus(
+	orderId: string,
+	newStatus: string
+): { success: boolean; error?: string } {
+	if (!VALID_STATUSES.includes(newStatus as OrderStatus)) {
+		return { success: false, error: 'Invalid status' };
+	}
+
+	const row = db
+		.prepare('SELECT status FROM orders WHERE id = ?')
+		.get(orderId) as { status: string } | undefined;
+
+	if (!row) {
+		return { success: false, error: 'Order not found' };
+	}
+
+	const currentIdx = STATUS_ORDER[row.status];
+	const newIdx = STATUS_ORDER[newStatus];
+
+	if (currentIdx === undefined || newIdx === undefined || newIdx !== currentIdx + 1) {
+		return { success: false, error: `Cannot transition from ${row.status} to ${newStatus}` };
+	}
+
+	const timestampCol =
+		newStatus === 'confirmed'
+			? 'confirmed_at'
+			: newStatus === 'shipped'
+				? 'shipped_at'
+				: 'delivered_at';
+
+	db.prepare(`UPDATE orders SET status = ?, ${timestampCol} = datetime('now') WHERE id = ?`).run(
+		newStatus,
+		orderId
+	);
+
+	return { success: true };
+}
+
+export function setTracking(
+	orderId: string,
+	trackingNumber: string,
+	carrier: string
+): void {
+	db.prepare('UPDATE orders SET tracking_number = ?, tracking_carrier = ? WHERE id = ?').run(
+		trackingNumber,
+		carrier,
+		orderId
+	);
+}
+
+export function getOrderEmail(orderId: string): string | null {
+	const row = db
+		.prepare(
+			`SELECT u.email FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = ?`
+		)
+		.get(orderId) as { email: string } | undefined;
+	return row?.email ?? null;
 }

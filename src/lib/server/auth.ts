@@ -26,6 +26,12 @@ export const COOKIE_OPTIONS = {
 	maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60
 };
 
+const ADMIN_USER_ID = process.env.ADMIN_USER_ID || '';
+
+export function isAdmin(userId: string): boolean {
+	return ADMIN_USER_ID !== '' && userId === ADMIN_USER_ID;
+}
+
 export class AuthError extends Error {
 	constructor(message: string) {
 		super(message);

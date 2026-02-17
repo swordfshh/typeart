@@ -135,6 +135,17 @@ function createDb(): Database.Database {
 	}
 	db.exec(`CREATE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders(stripe_session_id)`);
 
+	// Tracking and status timestamp columns
+	if (!orderCols.some((c) => c.name === 'tracking_number')) {
+		db.exec(`
+			ALTER TABLE orders ADD COLUMN tracking_number TEXT;
+			ALTER TABLE orders ADD COLUMN tracking_carrier TEXT;
+			ALTER TABLE orders ADD COLUMN confirmed_at TEXT;
+			ALTER TABLE orders ADD COLUMN shipped_at TEXT;
+			ALTER TABLE orders ADD COLUMN delivered_at TEXT;
+		`);
+	}
+
 	// Shipping address columns
 	if (!orderCols.some((c) => c.name === 'shipping_name')) {
 		db.exec(`

@@ -126,7 +126,10 @@
 			</div>
 
 			<div class="price-row">
-				<span class="total-price">${totalPrice.toFixed(2)}</span>
+				<div class="price-col">
+					<span class="total-price">${totalPrice.toFixed(2)}</span>
+					<span class="free-ship">Free shipping</span>
+				</div>
 				<button class="add-btn" onclick={addToCart} class:added disabled={!kitAcknowledged}>
 					{added ? 'Added!' : 'Add to Cart'}
 				</button>
@@ -283,10 +286,21 @@
 		border-top: 1px solid var(--base01);
 	}
 
+	.price-col {
+		display: flex;
+		flex-direction: column;
+	}
+
 	.total-price {
 		font-size: 1.5rem;
 		font-weight: 700;
 		color: var(--green);
+	}
+
+	.free-ship {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--base00);
 	}
 
 	.add-btn {

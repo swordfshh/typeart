@@ -1,13 +1,14 @@
 import type { Handle } from '@sveltejs/kit';
 import { getSession, cleanExpiredSessions, cleanExpiredResetTokens, SESSION_COOKIE } from '$lib/server/auth.js';
 import { cleanupRateLimits } from '$lib/server/rate-limit.js';
-import { cleanStalePendingOrders } from '$lib/server/orders.js';
+import { cleanStalePendingOrders, cleanStaleWebhookEvents } from '$lib/server/orders.js';
 
 setInterval(() => {
 	cleanExpiredSessions();
 	cleanExpiredResetTokens();
 	cleanupRateLimits();
 	cleanStalePendingOrders();
+	cleanStaleWebhookEvents();
 }, 60 * 60 * 1000);
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -54,7 +55,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 			"font-src 'self' https://fonts.gstatic.com",
 			"img-src 'self' data:",
-			"connect-src 'self'",
+			"connect-src 'self' https://*.stripe.com",
 			"frame-ancestors 'none'"
 		].join('; ')
 	);

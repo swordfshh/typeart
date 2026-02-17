@@ -388,10 +388,21 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 9 — Security Hardening II**: Password change endpoint (invalidates other sessions), account deletion (GDPR right to erasure), CSRF protection (Origin header checking), leaderboard query param validation, nginx request body size limit (1MB), max 5 sessions per user, account lockout (5 failures = 15min, 10 = 1hr), security event logging (login/lockout/password change/deletion with IP)
 - [x] **Phase 10 — Product Photos & Pricing**: Real product photos with image gallery, color surcharge system (ColorOption type, end-to-end pricing), stabilizer pricing, server-side price validation for all options, kiosk stats dashboard
 - [x] **Phase 11 — Stripe Checkout**: Stripe Checkout (hosted) integration, webhook-confirmed orders with signature verification, idempotent payment processing, stale pending order cleanup, Miami Nights logo exports
+- [x] **Phase 12 — Checkout Security Hardening**: Webhook event deduplication (prevents duplicate emails/replay attacks), atomic payment transaction, payment_status validation, dispute/failure/expiry webhook handlers, Stripe secret startup validation, CSP connect-src fix for Stripe domains
 
 ## Changelog
 
 ### 2026-02-17
+
+**Checkout security hardening**
+- Webhook event deduplication: new `webhook_events` table tracks processed Stripe event IDs, preventing duplicate confirmation emails from webhook replays or concurrent deliveries
+- Atomic payment processing: `processPaymentWebhook()` wraps event recording + order status update in a single SQLite transaction, eliminating the race condition where concurrent webhooks both read `status='pending'`
+- Payment status validation: webhook now verifies `session.payment_status === 'paid'` before marking orders as paid
+- New webhook handlers: `checkout.session.expired` (logged), `charge.dispute.created` (logged as error), `charge.failed` (logged as error), plus audit trail for all unhandled event types
+- Stripe secret validation: warns at startup if `STRIPE_SECRET_KEY` or `STRIPE_WEBHOOK_SECRET` are missing
+- CSP fix: added `https://*.stripe.com` to `connect-src` for future Stripe.js/Elements compatibility
+- Structured webhook logging: all warn/error paths include `event.id` and `orderId` context
+- Hourly cleanup of webhook events older than 7 days
 
 **Stripe Checkout integration**
 - Added Stripe Checkout (hosted) — full page redirect to Stripe's payment page, no card UI to build

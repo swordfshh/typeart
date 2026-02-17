@@ -108,8 +108,16 @@ function createDb(): Database.Database {
 		CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id);
 		CREATE INDEX IF NOT EXISTS idx_reset_tokens_expires ON password_reset_tokens(expires_at);
 		CREATE INDEX IF NOT EXISTS idx_rate_limits_reset ON rate_limits(reset_at);
+		CREATE TABLE IF NOT EXISTS webhook_events (
+			event_id TEXT PRIMARY KEY,
+			event_type TEXT NOT NULL,
+			order_id TEXT,
+			processed_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
 		CREATE INDEX IF NOT EXISTS idx_security_logs_event ON security_logs(event);
 		CREATE INDEX IF NOT EXISTS idx_security_logs_created ON security_logs(created_at);
+		CREATE INDEX IF NOT EXISTS idx_webhook_events_processed ON webhook_events(processed_at);
 	`);
 
 	// Migrations for existing databases

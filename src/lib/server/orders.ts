@@ -178,6 +178,54 @@ export function updateOrderPayment(orderId: string, status: string, paymentInten
 	);
 }
 
+/**
+ * Check if a webhook event has already been processed (idempotency).
+ * Returns true if the event was already handled.
+ */
+export function isWebhookEventProcessed(eventId: string): boolean {
+	const row = db.prepare('SELECT 1 FROM webhook_events WHERE event_id = ?').get(eventId);
+	return !!row;
+}
+
+/**
+ * Atomically mark an order as paid and record the webhook event.
+ * Prevents duplicate processing from concurrent webhook deliveries.
+ */
+export function processPaymentWebhook(
+	eventId: string,
+	eventType: string,
+	orderId: string,
+	paymentIntent: string
+): boolean {
+	const run = db.transaction(() => {
+		// Double-check inside transaction to prevent race condition
+		const existing = db.prepare('SELECT 1 FROM webhook_events WHERE event_id = ?').get(eventId);
+		if (existing) return false;
+
+		db.prepare(
+			'INSERT INTO webhook_events (event_id, event_type, order_id) VALUES (?, ?, ?)'
+		).run(eventId, eventType, orderId);
+
+		db.prepare('UPDATE orders SET status = ?, stripe_payment_intent = ? WHERE id = ?').run(
+			'paid',
+			paymentIntent,
+			orderId
+		);
+
+		return true;
+	});
+	return run();
+}
+
+/**
+ * Record a webhook event without modifying order status (for non-payment events).
+ */
+export function recordWebhookEvent(eventId: string, eventType: string, orderId?: string): void {
+	db.prepare(
+		'INSERT OR IGNORE INTO webhook_events (event_id, event_type, order_id) VALUES (?, ?, ?)'
+	).run(eventId, eventType, orderId ?? null);
+}
+
 export function getOrderById(orderId: string): (OrderDetail & { user_id: string }) | null {
 	const order = db
 		.prepare(
@@ -214,8 +262,17 @@ export function getOrderByStripeSession(
 }
 
 export function cleanStalePendingOrders(): void {
-	db.prepare(
+	const deleted = db.prepare(
 		`DELETE FROM orders WHERE status = 'pending' AND created_at < datetime('now', '-24 hours')`
+	).run();
+	if (deleted.changes > 0) {
+		console.log(`Cleaned ${deleted.changes} stale pending order(s)`);
+	}
+}
+
+export function cleanStaleWebhookEvents(): void {
+	db.prepare(
+		`DELETE FROM webhook_events WHERE processed_at < datetime('now', '-7 days')`
 	).run();
 }
 

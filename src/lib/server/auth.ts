@@ -1,7 +1,7 @@
 import { db } from './db.js';
 import { hash, verify } from '@node-rs/argon2';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
-import { sendPasswordResetEmail, sendVerificationEmail } from './email.js';
+import { sendPasswordResetEmail, sendVerificationEmail, sendWelcomeEmail } from './email.js';
 
 export interface User {
 	id: string;
@@ -300,6 +300,16 @@ export function verifyEmail(token: string): { success: boolean; error?: string }
 		db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(row.user_id);
 		db.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').run(row.user_id);
 	})();
+
+	// Send welcome email (fire-and-forget)
+	const user = db
+		.prepare('SELECT username, email FROM users WHERE id = ?')
+		.get(row.user_id) as { username: string; email: string } | undefined;
+	if (user) {
+		sendWelcomeEmail(user.email, user.username).catch((err) =>
+			console.error('Welcome email failed:', err)
+		);
+	}
 
 	return { success: true };
 }

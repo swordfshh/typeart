@@ -97,6 +97,33 @@ export async function sendVerificationEmail(email: string, token: string): Promi
 	});
 }
 
+// --- Welcome email ---
+
+export async function sendWelcomeEmail(email: string, username: string): Promise<boolean> {
+	return sendEmail({
+		to: email,
+		subject: 'Welcome to TypeArt',
+		html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #2A1E0E; background: #F2EAD8;">
+	<h2 style="margin-bottom: 16px;">Welcome, ${username}!</h2>
+	<p style="margin-bottom: 24px; color: #4D3F2A;">
+		Your email is verified and your TypeArt account is ready to go.
+		Browse our keyboard kits, configure your keymap, or test your typing speed.
+	</p>
+	<a href="${BASE_URL}/store"
+	   style="display: inline-block; padding: 12px 24px; background: #009DDC; color: #fff; text-decoration: none; border-radius: 4px; font-weight: 600;">
+		Browse the Store
+	</a>
+	<p style="margin-top: 24px; font-size: 13px; color: #8A7A5F;">
+		<a href="${BASE_URL}/configure" style="color: #009DDC;">Configure your keymap</a> · <a href="${BASE_URL}/type" style="color: #009DDC;">Typing test</a>
+	</p>
+</body>
+</html>`
+	});
+}
+
 // --- Shipping notification ---
 
 const TRACKING_URLS: Record<string, (n: string) => string> = {

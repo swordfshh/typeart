@@ -376,7 +376,7 @@ pnpm build && sudo systemctl restart typeart
 - [ ] **Store search & filtering** — Search bar, category filtering, sort by price/name
 - [x] **Stock & inventory status** — Per-product inventory tracking, out of stock prevention, low stock indicators
 - [ ] **Product reviews & ratings** — User-submitted reviews with star ratings
-- [ ] **Welcome email** — Send on registration after email verification
+- [x] **Welcome email** — Send on registration after email verification
 - [ ] **Accessibility** — Skip-to-content link, ARIA labels on all interactive elements, aria-live regions for dynamic updates, focus trapping in modals
 
 **Low — Nice to Have**

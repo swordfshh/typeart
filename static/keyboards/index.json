@@ -8,6 +8,12 @@
 		"firmwareSha256": "d941e27b1d6e8014b38e631deaaae5806c7cebf5c740ee742f7362b551799c77"
 	},
 	{
+		"name": "BM43A",
+		"path": "bm43a",
+		"vendorId": "0x4B50",
+		"productId": "0x6060"
+	},
+	{
 		"name": "Lux36",
 		"path": "lux36",
 		"vendorId": "0x4C4D",

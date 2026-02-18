@@ -44,13 +44,8 @@
 
 		// Try to auto-detect definition
 		const found = await definitionStore.loadForDevice(info.vendorId, info.productId);
-		if (!found && definitionStore.registry.length > 0) {
-			// Fall back to first available definition
-			await definitionStore.loadDefinition(definitionStore.registry[0].path);
-		}
-
-		if (!definitionStore.definition) {
-			loadError = 'No keyboard definition found for this device.';
+		if (!found) {
+			loadError = `No definition found for device ${info.vendorId.toString(16).padStart(4, '0')}:${info.productId.toString(16).padStart(4, '0')}. Try loading one manually below.`;
 			return;
 		}
 

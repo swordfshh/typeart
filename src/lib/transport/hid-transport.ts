@@ -84,14 +84,19 @@ export class HIDTransport {
 			} else {
 				// Try to reconnect to previously paired device
 				const devices = await navigator.hid.getDevices();
-				const viaDevice = devices.find((d) =>
+				const viaDevices = devices.filter((d) =>
 					d.collections.some((c) => c.usagePage === USAGE_PAGE && c.usage === USAGE)
 				);
-				if (!viaDevice) {
+				if (viaDevices.length === 0) {
 					this.setState('disconnected');
 					return;
 				}
-				this.device = viaDevice;
+				// Multiple VIA devices: don't auto-reconnect — let user pick via Connect
+				if (viaDevices.length > 1) {
+					this.setState('disconnected');
+					return;
+				}
+				this.device = viaDevices[0];
 			}
 
 			if (!this.device.opened) {

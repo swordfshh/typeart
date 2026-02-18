@@ -162,9 +162,7 @@
 
 		// Always reload definition for the connected device
 		const found = await definitionStore.loadForDevice(info.vendorId, info.productId);
-		if (!found && definitionStore.registry.length > 0) {
-			await definitionStore.loadDefinition(definitionStore.registry[0].path);
-		}
+		if (!found) return;
 
 		await loadEncoderKeycodes();
 		await openConsumerDevice();

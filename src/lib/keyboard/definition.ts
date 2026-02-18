@@ -18,7 +18,7 @@ export interface DefinitionResult {
  * Fetches the keyboard registry (list of available definitions).
  */
 export async function fetchKeyboardRegistry(): Promise<KeyboardRegistryEntry[]> {
-	const res = await fetch('/keyboards/index.json');
+	const res = await fetch(`/keyboards/index.json?v=${Date.now()}`);
 	if (!res.ok) throw new Error(`Failed to fetch keyboard registry: ${res.status}`);
 	return res.json();
 }

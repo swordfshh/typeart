@@ -435,6 +435,11 @@ pnpm build && sudo systemctl restart typeart
 - Product detail page: "Specifications" two-column table below product layout
 - JSON-LD `additionalProperty` entries added to Product schema for each spec
 
+**Welcome email & email branding**
+- Welcome email sent after successful email verification (fire-and-forget from `verifyEmail()`)
+- Sender address changed from `noreply@typeart.co` to `hello@typeart.co` (Cloudflare Email Routing forwards replies to personal inbox)
+- All 5 email templates restyled to Miami Nights theme: deep indigo `#0f0e17` background, neon cyan `#0AD2D3` buttons, light lavender text
+
 **Legal pages expanded**
 - Privacy policy: added payment info (Stripe), third-party services (Stripe, Resend, Cloudflare), data retention, user rights, children's privacy, changes section, meta description
 - Terms of service: added agreement clause, products & pricing, orders & payment, shipping & returns reference, intellectual property, limitation of liability, contact section, meta description

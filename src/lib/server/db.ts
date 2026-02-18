@@ -123,6 +123,16 @@ function createDb(): Database.Database {
 			product_slug TEXT PRIMARY KEY,
 			quantity INTEGER NOT NULL DEFAULT 0
 		);
+
+		CREATE TABLE IF NOT EXISTS email_verification_tokens (
+			token_hash TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			expires_at TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON email_verification_tokens(user_id);
+		CREATE INDEX IF NOT EXISTS idx_verification_tokens_expires ON email_verification_tokens(expires_at);
 	`);
 
 	// Seed inventory if empty
@@ -160,6 +170,12 @@ function createDb(): Database.Database {
 		`);
 	}
 
+	// Email verification column
+	const userCols = db.prepare(`PRAGMA table_info(users)`).all() as { name: string }[];
+	if (!userCols.some((c) => c.name === 'email_verified')) {
+		db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`);
+	}
+
 	// Shipping address columns
 	if (!orderCols.some((c) => c.name === 'shipping_name')) {
 		db.exec(`
@@ -177,6 +193,11 @@ function createDb(): Database.Database {
 }
 
 export const db = createDb();
+
+export function cleanExpiredVerificationTokens() {
+	if (building) return;
+	db.prepare(`DELETE FROM email_verification_tokens WHERE expires_at < datetime('now')`).run();
+}
 
 // Close DB when SvelteKit's adapter-node finishes its graceful shutdown.
 // Also handle SIGTERM/SIGINT directly in case sveltekit:shutdown doesn't fire.

@@ -142,6 +142,7 @@
 			<span class="copyright">&copy; 2026 TypeArt</span>
 			<nav class="footer-links">
 				<a href="/about">About</a>
+				<a href="/shipping">Shipping</a>
 				<a href="/privacy">Privacy</a>
 				<a href="/terms">Terms</a>
 				<a href="mailto:hello@typeart.co">Contact</a>

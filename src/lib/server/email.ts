@@ -69,6 +69,34 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
 	});
 }
 
+// --- Email verification ---
+
+export async function sendVerificationEmail(email: string, token: string): Promise<boolean> {
+	const verifyUrl = `${BASE_URL}/verify-email?token=${token}`;
+	return sendEmail({
+		to: email,
+		subject: 'Verify your TypeArt email',
+		html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; color: #2A1E0E; background: #F2EAD8;">
+	<h2 style="margin-bottom: 16px;">Verify your email</h2>
+	<p style="margin-bottom: 24px; color: #4D3F2A;">
+		Thanks for creating a TypeArt account. Click the button below to verify your email address.
+		This link expires in 24 hours.
+	</p>
+	<a href="${verifyUrl}"
+	   style="display: inline-block; padding: 12px 24px; background: #009DDC; color: #fff; text-decoration: none; border-radius: 4px; font-weight: 600;">
+		Verify Email
+	</a>
+	<p style="margin-top: 24px; font-size: 13px; color: #8A7A5F;">
+		If you didn't create this account, ignore this email.
+	</p>
+</body>
+</html>`
+	});
+}
+
 // --- Shipping notification ---
 
 const TRACKING_URLS: Record<string, (n: string) => string> = {

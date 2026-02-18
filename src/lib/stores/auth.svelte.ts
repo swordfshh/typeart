@@ -2,6 +2,7 @@ interface AuthUser {
 	id: string;
 	username: string;
 	email: string;
+	email_verified: boolean;
 	created_at: string;
 }
 

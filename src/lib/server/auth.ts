@@ -1,12 +1,13 @@
 import { db } from './db.js';
 import { hash, verify } from '@node-rs/argon2';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
-import { sendPasswordResetEmail } from './email.js';
+import { sendPasswordResetEmail, sendVerificationEmail } from './email.js';
 
 export interface User {
 	id: string;
 	username: string;
 	email: string;
+	email_verified: boolean;
 	created_at: string;
 }
 
@@ -81,9 +82,20 @@ export async function register(
 		throw err;
 	}
 
+	// Send verification email (fire-and-forget)
+	const verificationToken = randomBytes(32).toString('hex');
+	const tokenHash = hashToken(verificationToken);
+	const tokenExpiresAt = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS).toISOString();
+	db.prepare(
+		'INSERT INTO email_verification_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)'
+	).run(tokenHash, id, tokenExpiresAt);
+	sendVerificationEmail(email, verificationToken).catch((err) =>
+		console.error('Verification email failed:', err)
+	);
+
 	const sessionId = createSession(id);
 	return {
-		user: { id, username, email, created_at: new Date().toISOString() },
+		user: { id, username, email, email_verified: false, created_at: new Date().toISOString() },
 		sessionId
 	};
 }
@@ -117,8 +129,8 @@ export async function login(
 	}
 
 	const row = db
-		.prepare('SELECT id, username, email, password_hash, created_at FROM users WHERE email = ?')
-		.get(email) as UserRow | undefined;
+		.prepare('SELECT id, username, email, email_verified, password_hash, created_at FROM users WHERE email = ?')
+		.get(email) as (UserRow & { email_verified: number }) | undefined;
 
 	// Always run verify to prevent timing-based email enumeration
 	const dummyHash = await DUMMY_HASH_PROMISE;
@@ -149,7 +161,7 @@ export async function login(
 
 	const sessionId = createSession(row.id);
 	return {
-		user: { id: row.id, username: row.username, email: row.email, created_at: row.created_at },
+		user: { id: row.id, username: row.username, email: row.email, email_verified: row.email_verified === 1, created_at: row.created_at },
 		sessionId
 	};
 }
@@ -157,13 +169,14 @@ export async function login(
 export function getSession(sessionId: string): User | null {
 	const row = db
 		.prepare(
-			`SELECT u.id, u.username, u.email, u.created_at
+			`SELECT u.id, u.username, u.email, u.email_verified, u.created_at
 			 FROM sessions s JOIN users u ON s.user_id = u.id
 			 WHERE s.id = ? AND s.expires_at > datetime('now')`
 		)
-		.get(sessionId) as User | undefined;
+		.get(sessionId) as (Omit<User, 'email_verified'> & { email_verified: number }) | undefined;
 
-	return row ?? null;
+	if (!row) return null;
+	return { ...row, email_verified: row.email_verified === 1 };
 }
 
 export function logout(sessionId: string): void {
@@ -244,6 +257,7 @@ export function deleteAccount(userId: string): void {
 	db.transaction(() => {
 		db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
 		db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(userId);
+		db.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').run(userId);
 		db.prepare('DELETE FROM typing_scores WHERE user_id = ?').run(userId);
 		db.prepare('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE user_id = ?)').run(userId);
 		db.prepare('DELETE FROM orders WHERE user_id = ?').run(userId);
@@ -251,13 +265,71 @@ export function deleteAccount(userId: string): void {
 	})();
 }
 
-// --- Password reset ---
-
-const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+// --- Token hashing ---
 
 function hashToken(token: string): string {
 	return createHash('sha256').update(token).digest('hex');
 }
+
+// --- Email verification ---
+
+const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export function isEmailVerified(userId: string): boolean {
+	const row = db
+		.prepare('SELECT email_verified FROM users WHERE id = ?')
+		.get(userId) as { email_verified: number } | undefined;
+	return row?.email_verified === 1;
+}
+
+export function verifyEmail(token: string): { success: boolean; error?: string } {
+	const tokenHash = hashToken(token);
+
+	const row = db
+		.prepare(
+			`SELECT user_id FROM email_verification_tokens
+			 WHERE token_hash = ? AND expires_at > datetime('now')`
+		)
+		.get(tokenHash) as { user_id: string } | undefined;
+
+	if (!row) {
+		return { success: false, error: 'Invalid or expired verification link' };
+	}
+
+	db.transaction(() => {
+		db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(row.user_id);
+		db.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').run(row.user_id);
+	})();
+
+	return { success: true };
+}
+
+export async function resendVerification(userId: string): Promise<{ success: boolean; error?: string }> {
+	const user = db
+		.prepare('SELECT email, email_verified FROM users WHERE id = ?')
+		.get(userId) as { email: string; email_verified: number } | undefined;
+
+	if (!user) return { success: false, error: 'User not found' };
+	if (user.email_verified === 1) return { success: false, error: 'Email already verified' };
+
+	// Delete existing tokens, generate new one
+	db.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').run(userId);
+
+	const token = randomBytes(32).toString('hex');
+	const tokenHash = hashToken(token);
+	const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS).toISOString();
+
+	db.prepare(
+		'INSERT INTO email_verification_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)'
+	).run(tokenHash, userId, expiresAt);
+
+	await sendVerificationEmail(user.email, token);
+	return { success: true };
+}
+
+// --- Password reset ---
+
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 export async function requestPasswordReset(email: string): Promise<void> {
 	email = email.trim().toLowerCase();

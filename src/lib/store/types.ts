@@ -8,6 +8,11 @@ export interface StabilizerOption {
 	price: number;
 }
 
+export interface SpecItem {
+	label: string;
+	value: string;
+}
+
 export interface Product {
 	name: string;
 	slug: string;
@@ -19,6 +24,7 @@ export interface Product {
 	colors: ColorOption[];
 	stabilizers: StabilizerOption[];
 	wristRestPrice: number;
+	specs: SpecItem[];
 }
 
 export interface VariantSelection {

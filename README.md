@@ -38,6 +38,8 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/settings` | Account settings — change password, delete account |
 | `/display` | Kiosk dashboard — full-screen stats display for 7" HDMI (revenue, orders, users, typing tests, recent orders, popular products, inventory). Auto-refreshes every 30s |
 | `/about` | About page — brand story, keyboard build guide, layout explanations, tools overview, internal cross-links |
+| `/verify-email` | Email verification — validates token from verification email, updates user state |
+| `/shipping` | Shipping & returns policy — delivery timeframes, carrier info, return policy |
 | `/privacy` | Privacy policy |
 | `/terms` | Terms of service |
 | `/sitemap.xml` | XML sitemap with all public pages and product image tags |
@@ -239,6 +241,8 @@ src/
     ├── forgot-password/+page.svelte # Password reset request
     ├── reset-password/+page.svelte  # Token-validated password reset
     ├── about/+page.svelte            # About page (brand story, build guide, tools)
+    ├── verify-email/+page.svelte    # Email verification page (token validation, resend)
+    ├── shipping/+page.svelte        # Shipping & returns policy
     ├── privacy/+page.svelte         # Privacy policy
     ├── terms/+page.svelte           # Terms of service
     ├── sitemap.xml/+server.ts       # XML sitemap (prerendered)
@@ -250,7 +254,7 @@ src/
     │   ├── +page.svelte             # Order history list
     │   └── [id]/+page.svelte        # Order detail with itemized breakdown
     ├── api/
-    │   ├── auth/{register,login,logout,me,forgot-password,reset-password,change-password,delete-account}/+server.ts
+    │   ├── auth/{register,login,logout,me,forgot-password,reset-password,change-password,delete-account,verify-email,resend-verification}/+server.ts
     │   ├── scores/{+server.ts,me/+server.ts}           # Score API routes
     │   ├── orders/{+server.ts,[id]/+server.ts}         # Order API routes
     │   ├── checkout/+server.ts      # Stripe Checkout Session creation (POST)
@@ -359,14 +363,14 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Checkout & payment** — Stripe Checkout (hosted), webhook-confirmed orders, confirmation emails
 - [x] **Shipping address collection** — Stripe Checkout collects US shipping address, stored in DB, shown on order detail + confirmation email
 - [x] **Product images** — Real product photos with gallery and thumbnail strip (zoom TBD)
-- [ ] **Order status management** — Admin ability to update status (confirmed/shipped/delivered), tracking numbers, shipping notification emails
+- [x] **Order status management** — Admin ability to update status (confirmed/shipped/delivered), tracking numbers, shipping notification emails
 
 **High — Trust & Discoverability**
-- [ ] **Shipping & return policy page** — Delivery timeframes, return window, refund process
+- [x] **Shipping & return policy page** — Delivery timeframes, return window, refund process
 - [x] **FAQ page** — Common questions about keyboards, shipping, compatibility (FAQ schema on about page)
-- [ ] **Email verification** — Confirm email on registration before allowing orders
+- [x] **Email verification** — Confirm email on registration before allowing orders
 - [x] **SEO metadata** — Meta descriptions, Open Graph tags, Twitter Cards, JSON-LD structured data for products, sitemap.xml, canonical URLs, Google Merchant product feed
-- [ ] **Product specs** — Dimensions, weight, materials, switch compatibility, what's included
+- [x] **Product specs** — Dimensions, weight, materials, switch compatibility, what's included
 
 **Medium — User Experience**
 - [ ] **Store search & filtering** — Search bar, category filtering, sort by price/name
@@ -399,8 +403,41 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 13 — Shipping & Kit Acknowledgment**: Stripe Checkout collects US shipping address, webhook stores in DB, displayed on order detail/success pages and confirmation email, kit acknowledgment checkbox on product page
 - [x] **Phase 14 — SEO & Discoverability**: Meta descriptions, OG tags, Twitter Cards, JSON-LD Product/ItemList/Organization/WebSite/BreadcrumbList/FAQPage schemas, canonical URLs, XML sitemap, Google Merchant Center product feed, about page with build guide and internal cross-linking, descriptive image alt text, WebP image optimization with `<picture>` tag fallbacks
 - [x] **Phase 15 — Inventory Tracking**: Per-product stock table, atomic stock check + decrement in order transaction, stock API endpoint, out-of-stock UI on product/cart pages, inventory card on kiosk display
+- [x] **Phase 16 — Email Verification, Shipping Policy, Product Specs, Legal Updates**: Email verification on registration (token-based, 24hr expiry, resend flow), checkout gated behind verified email, shipping & returns policy page, product specifications table on detail pages with JSON-LD `additionalProperty`, expanded privacy policy and terms of service
 
 ## Changelog
+
+### 2026-02-18
+
+**Email verification**
+- New `email_verification_tokens` table with SHA-256 hashed tokens, 24-hour expiry
+- `email_verified` column on `users` table (default false, migration-safe ALTER TABLE)
+- On registration: sends verification email via Resend with tokenized link to `/verify-email`
+- `POST /api/auth/verify-email` — validates token, marks user verified, deletes all user tokens
+- `POST /api/auth/resend-verification` — rate limited (3/15min), regenerates token, resends email
+- `/verify-email` page: auto-verifies on mount, shows success/error, resend button if logged in
+- Login page: after registration shows "Check your email" success message instead of redirecting
+- Checkout gated: `POST /api/checkout` returns 403 if email not verified
+- Cart page: yellow verification banner with inline resend button, checkout button disabled until verified
+- `authStore` and `User` interface updated with `email_verified` field
+- Hourly cleanup of expired verification tokens in hooks.server.ts
+- Account deletion cascades to verification tokens
+
+**Shipping & returns policy**
+- New `/shipping` page with delivery timeframes (1–3 days to ship, 3–7 days delivery), carriers (USPS/UPS/FedEx), return policy (all kit sales final), damaged/defective item process (7-day window, free return shipping)
+- Added to footer navigation, sitemap.xml
+
+**Product specifications**
+- New `SpecItem` type (`label` + `value`) and `specs: SpecItem[]` on `Product` interface
+- Parser extended: `specs:` list field with `Label | Value` pipe-delimited format
+- Type 40: 13 specs (layout, keys, dimensions, weight, case, plate, mount, foam, PCB, firmware, switches, keycaps, included)
+- Type QAZ: 13 specs matching the QAZ-specific values
+- Product detail page: "Specifications" two-column table below product layout
+- JSON-LD `additionalProperty` entries added to Product schema for each spec
+
+**Legal pages expanded**
+- Privacy policy: added payment info (Stripe), third-party services (Stripe, Resend, Cloudflare), data retention, user rights, children's privacy, changes section, meta description
+- Terms of service: added agreement clause, products & pricing, orders & payment, shipping & returns reference, intellectual property, limitation of liability, contact section, meta description
 
 ### 2026-02-17
 

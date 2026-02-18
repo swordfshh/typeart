@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import VariantSelector from '../../../components/VariantSelector.svelte';
 	import { cartStore } from '$lib/stores/cart.svelte.js';
-	import type { ColorOption, StabilizerOption } from '$lib/store/types.js';
+	import type { ColorOption, StabilizerOption, SpecItem } from '$lib/store/types.js';
 
 	let { data } = $props();
 
@@ -105,7 +105,12 @@
 					"addressCountry": "US"
 				}
 			}
-		}
+		},
+		...(product.specs.length > 0 ? { "additionalProperty": product.specs.map((s: SpecItem) => ({
+			"@type": "PropertyValue",
+			"name": s.label,
+			"value": s.value
+		})) } : {})
 	})}</script>`}
 	{@html `<script type="application/ld+json">${JSON.stringify({
 		"@context": "https://schema.org",
@@ -209,6 +214,22 @@
 			<p class="configure-link">After building, <a href="/configure">configure your keymap</a> live in the browser. <a href="/about">Learn more</a> about what's in the kit.</p>
 		</div>
 	</div>
+
+	{#if product.specs.length > 0}
+		<div class="specs-section">
+			<h2>Specifications</h2>
+			<table class="specs-table">
+				<tbody>
+					{#each product.specs as spec}
+						<tr>
+							<td class="spec-label">{spec.label}</td>
+							<td class="spec-value">{spec.value}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -427,5 +448,46 @@
 
 	.configure-link a {
 		color: var(--blue);
+	}
+
+	.specs-section {
+		margin-top: 40px;
+		padding-top: 24px;
+		border-top: 1px solid var(--base01);
+	}
+
+	.specs-section h2 {
+		font-size: 1.125rem;
+		font-weight: 700;
+		color: var(--base1);
+		letter-spacing: -0.01em;
+		margin-bottom: 16px;
+	}
+
+	.specs-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.875rem;
+	}
+
+	.specs-table tr {
+		border-bottom: 1px solid var(--base01);
+	}
+
+	.specs-table tr:last-child {
+		border-bottom: none;
+	}
+
+	.spec-label {
+		color: var(--base00);
+		padding: 8px 16px 8px 0;
+		white-space: nowrap;
+		width: 1%;
+		font-weight: 500;
+	}
+
+	.spec-value {
+		color: var(--base0);
+		padding: 8px 0;
 	}
 </style>

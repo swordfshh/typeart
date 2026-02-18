@@ -2,10 +2,12 @@ import type { Handle } from '@sveltejs/kit';
 import { getSession, cleanExpiredSessions, cleanExpiredResetTokens, SESSION_COOKIE } from '$lib/server/auth.js';
 import { cleanupRateLimits } from '$lib/server/rate-limit.js';
 import { cleanStalePendingOrders, cleanStaleWebhookEvents } from '$lib/server/orders.js';
+import { cleanExpiredVerificationTokens } from '$lib/server/db.js';
 
 setInterval(() => {
 	cleanExpiredSessions();
 	cleanExpiredResetTokens();
+	cleanExpiredVerificationTokens();
 	cleanupRateLimits();
 	cleanStalePendingOrders();
 	cleanStaleWebhookEvents();

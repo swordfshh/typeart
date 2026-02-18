@@ -9,6 +9,7 @@
 	let confirmPassword = $state('');
 	let error = $state('');
 	let loading = $state(false);
+	let registered = $state(false);
 
 	async function handleLogin() {
 		error = '';
@@ -32,7 +33,7 @@
 		loading = true;
 		try {
 			await authStore.register(username, email, password);
-			goto('/type');
+			registered = true;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Registration failed';
 		} finally {
@@ -51,6 +52,11 @@
 			<button class="tab" class:active={tab === 'login'} onclick={() => { tab = 'login'; error = ''; }}>Log In</button>
 			<button class="tab" class:active={tab === 'register'} onclick={() => { tab = 'register'; error = ''; }}>Register</button>
 		</div>
+
+		{#if registered}
+			<p class="success">Account created! Check your email for a verification link.</p>
+			<a href="/type" class="continue-link">Continue to typing test &rarr;</a>
+		{:else}
 
 		{#if error}
 			<p class="error">{error}</p>
@@ -93,6 +99,8 @@
 					{loading ? 'Creating account...' : 'Register'}
 				</button>
 			</form>
+		{/if}
+
 		{/if}
 	</div>
 </div>
@@ -197,6 +205,21 @@
 	.submit:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.success {
+		background: color-mix(in srgb, var(--green) 15%, transparent);
+		color: var(--green);
+		padding: 10px 14px;
+		border-radius: var(--radius-sm);
+		font-size: 0.85rem;
+		font-weight: 500;
+		margin-bottom: 16px;
+	}
+
+	.continue-link {
+		font-size: 0.85rem;
+		color: var(--blue);
 	}
 
 	.error {

@@ -1,4 +1,4 @@
-import type { Product, ColorOption, StabilizerOption } from './types.js';
+import type { Product, ColorOption, StabilizerOption, SpecItem } from './types.js';
 
 /**
  * Parse the products.txt format into Product objects.
@@ -17,7 +17,7 @@ export function parseProducts(text: string): Product[] {
 	return products;
 }
 
-type ListField = 'colors' | 'stabilizers';
+type ListField = 'colors' | 'stabilizers' | 'specs';
 
 function parseBlock(block: string): Product | null {
 	if (!block) return null;
@@ -47,7 +47,7 @@ function parseBlock(block: string): Product | null {
 			const key = match[1];
 			const value = (match[2] ?? '').trim();
 
-			if (key === 'colors' || key === 'stabilizers') {
+			if (key === 'colors' || key === 'stabilizers' || key === 'specs') {
 				currentList = key;
 				lists[key] = [];
 			} else {
@@ -69,7 +69,8 @@ function parseBlock(block: string): Product | null {
 		imageCount: parseInt(fields['images'] ?? '0', 10) || 0,
 		colors: (lists['colors'] ?? []).map(parseColor),
 		stabilizers: (lists['stabilizers'] ?? []).map(parseStabilizer),
-		wristRestPrice: parseFloat(fields['wrist-rest'] ?? '0')
+		wristRestPrice: parseFloat(fields['wrist-rest'] ?? '0'),
+		specs: (lists['specs'] ?? []).map(parseSpec)
 	};
 }
 
@@ -86,5 +87,13 @@ function parseStabilizer(raw: string): StabilizerOption {
 	return {
 		name: parts[0],
 		price: parts.length > 1 ? parseFloat(parts[1]) : 0
+	};
+}
+
+function parseSpec(raw: string): SpecItem {
+	const parts = raw.split('|').map((s) => s.trim());
+	return {
+		label: parts[0],
+		value: parts[1] ?? ''
 	};
 }

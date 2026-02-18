@@ -19,6 +19,21 @@ stabilizers:
 
 wrist-rest: 19.00
 
+specs:
+  - Layout | 40% staggered
+  - Keys | 44 keys + rotary encoder
+  - Dimensions | 250 × 90 × 30 mm
+  - Weight | ~280 g (without switches/keycaps)
+  - Case | 3D-printed PLA
+  - Plate | Integrated into case
+  - Mount | Gasket (gummy o-ring)
+  - Foam | 2mm PORON dampener
+  - PCB | Hot-swap (MX-compatible), USB-C
+  - Firmware | QMK with VIA support
+  - Switches | Any MX-compatible (Cherry, Gateron, etc.)
+  - Keycaps | Any MX-stem keycap set
+  - Included | PCB, case, plate, gasket, foam, USB-C cable
+
 ---
 
 name: Type QAZ
@@ -39,3 +54,18 @@ stabilizers:
   - Durock V3 screw-in | 15.00
 
 wrist-rest: 19.00
+
+specs:
+  - Layout | 35% staggered (QAZ)
+  - Keys | 36 keys
+  - Dimensions | 220 × 80 × 28 mm
+  - Weight | ~230 g (without switches/keycaps)
+  - Case | 3D-printed PLA
+  - Plate | Integrated into case
+  - Mount | Gasket (gummy o-ring)
+  - Foam | 2mm PORON dampener
+  - PCB | Hot-swap (MX-compatible), USB-C
+  - Firmware | QMK with VIA support
+  - Switches | Any MX-compatible (Cherry, Gateron, etc.)
+  - Keycaps | Any MX-stem keycap set
+  - Included | PCB, case, plate, gasket, foam, USB-C cable

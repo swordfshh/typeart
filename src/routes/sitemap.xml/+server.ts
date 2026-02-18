@@ -16,7 +16,8 @@ export function GET() {
 		{ loc: '/configure', priority: '0.7' },
 		{ loc: '/type', priority: '0.7' },
 		{ loc: '/test', priority: '0.6' },
-		{ loc: '/about', priority: '0.5' }
+		{ loc: '/about', priority: '0.5' },
+		{ loc: '/shipping', priority: '0.4' }
 	];
 
 	const urls = staticPages

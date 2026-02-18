@@ -7,6 +7,20 @@
 	let checkingOut = $state(false);
 	let checkoutError = $state('');
 	let stock = $state<Record<string, number>>({});
+	let resendingVerification = $state(false);
+	let verificationResent = $state(false);
+
+	const needsVerification = $derived(authStore.loggedIn && !authStore.user?.email_verified);
+
+	async function handleResendVerification() {
+		resendingVerification = true;
+		verificationResent = false;
+		try {
+			const res = await fetch('/api/auth/resend-verification', { method: 'POST' });
+			if (res.ok) verificationResent = true;
+		} catch {}
+		resendingVerification = false;
+	}
 
 	onMount(() => {
 		cartStore.hydrate();
@@ -119,6 +133,20 @@
 			{/each}
 		</div>
 
+		{#if needsVerification}
+			<div class="verify-banner">
+				<p>Verify your email to checkout.
+					{#if verificationResent}
+						<span class="verify-sent">Sent! Check your inbox.</span>
+					{:else}
+						<button class="resend-link" onclick={handleResendVerification} disabled={resendingVerification}>
+							{resendingVerification ? 'Sending...' : 'Resend verification email'}
+						</button>
+					{/if}
+				</p>
+			</div>
+		{/if}
+
 		<div class="cart-footer">
 			<div class="cart-total">
 				<span>Total</span>
@@ -126,7 +154,7 @@
 			</div>
 			<div class="cart-actions">
 				<a href="/store" class="continue-link">Continue Shopping</a>
-				<button class="checkout-btn" onclick={handleCheckout} disabled={checkingOut || hasStockIssues}>
+				<button class="checkout-btn" onclick={handleCheckout} disabled={checkingOut || hasStockIssues || needsVerification}>
 					{checkingOut ? 'Redirecting...' : 'Checkout'}
 				</button>
 			</div>
@@ -333,6 +361,42 @@
 		font-size: 0.85rem;
 		color: var(--red);
 		text-align: right;
+	}
+
+	.verify-banner {
+		margin-top: 16px;
+		padding: 12px 16px;
+		background: color-mix(in srgb, var(--yellow) 15%, transparent);
+		border: 1px solid var(--yellow);
+		border-radius: var(--radius-md);
+	}
+
+	.verify-banner p {
+		font-size: 0.85rem;
+		color: var(--base1);
+		font-weight: 500;
+	}
+
+	.resend-link {
+		background: none;
+		border: none;
+		color: var(--blue);
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 0;
+		font-family: inherit;
+		text-decoration: underline;
+	}
+
+	.resend-link:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.verify-sent {
+		color: var(--green);
+		font-weight: 600;
 	}
 
 	.stock-warn {

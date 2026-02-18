@@ -36,7 +36,7 @@ Requires **Node.js 22+** and **pnpm**. WebHID only works in **Chrome/Edge**. On 
 | `/forgot-password` | Password reset request — sends email with reset link |
 | `/reset-password` | Password reset — token-validated new password form |
 | `/settings` | Account settings — change password, delete account |
-| `/display` | Kiosk dashboard — full-screen stats display for 7" HDMI (revenue, orders, users, typing tests, recent orders, popular products). Auto-refreshes every 30s |
+| `/display` | Kiosk dashboard — full-screen stats display for 7" HDMI (revenue, orders, users, typing tests, recent orders, popular products, inventory). Auto-refreshes every 30s |
 | `/about` | About page — brand story, keyboard build guide, layout explanations, tools overview, internal cross-links |
 | `/privacy` | Privacy policy |
 | `/terms` | Terms of service |
@@ -244,8 +244,8 @@ src/
     ├── sitemap.xml/+server.ts       # XML sitemap (prerendered)
     ├── feeds/products.xml/+server.ts # Google Merchant Center product feed (prerendered)
     ├── display/
-    │   ├── +page.server.ts          # Dashboard stats queries (users, orders, revenue, typing tests, popular products)
-    │   └── +page.svelte             # Full-screen kiosk dashboard (Miami Nights, auto-refresh, live clock)
+    │   ├── +page.server.ts          # Dashboard stats queries (users, orders, revenue, typing tests, popular products, inventory)
+    │   └── +page.svelte             # Full-screen kiosk dashboard (Miami Nights, auto-refresh, live clock, inventory)
     ├── orders/
     │   ├── +page.svelte             # Order history list
     │   └── [id]/+page.svelte        # Order detail with itemized breakdown
@@ -254,6 +254,7 @@ src/
     │   ├── scores/{+server.ts,me/+server.ts}           # Score API routes
     │   ├── orders/{+server.ts,[id]/+server.ts}         # Order API routes
     │   ├── checkout/+server.ts      # Stripe Checkout Session creation (POST)
+    │   ├── stock/+server.ts         # GET stock levels per product slug
     │   └── webhooks/stripe/+server.ts # Stripe webhook (payment confirmation, signature-verified)
     └── store/
         ├── +page.ts                 # Load: fetch & parse products.txt
@@ -369,7 +370,7 @@ pnpm build && sudo systemctl restart typeart
 
 **Medium — User Experience**
 - [ ] **Store search & filtering** — Search bar, category filtering, sort by price/name
-- [ ] **Stock & inventory status** — In stock / out of stock indicators, backorder support
+- [x] **Stock & inventory status** — Per-product inventory tracking, out of stock prevention, low stock indicators
 - [ ] **Product reviews & ratings** — User-submitted reviews with star ratings
 - [ ] **Welcome email** — Send on registration after email verification
 - [ ] **Accessibility** — Skip-to-content link, ARIA labels on all interactive elements, aria-live regions for dynamic updates, focus trapping in modals
@@ -397,10 +398,20 @@ pnpm build && sudo systemctl restart typeart
 - [x] **Phase 12 — Checkout Security Hardening**: Webhook event deduplication (prevents duplicate emails/replay attacks), atomic payment transaction, payment_status validation, dispute/failure/expiry webhook handlers, Stripe secret startup validation, CSP connect-src fix for Stripe domains
 - [x] **Phase 13 — Shipping & Kit Acknowledgment**: Stripe Checkout collects US shipping address, webhook stores in DB, displayed on order detail/success pages and confirmation email, kit acknowledgment checkbox on product page
 - [x] **Phase 14 — SEO & Discoverability**: Meta descriptions, OG tags, Twitter Cards, JSON-LD Product/ItemList/Organization/WebSite/BreadcrumbList/FAQPage schemas, canonical URLs, XML sitemap, Google Merchant Center product feed, about page with build guide and internal cross-linking, descriptive image alt text, WebP image optimization with `<picture>` tag fallbacks
+- [x] **Phase 15 — Inventory Tracking**: Per-product stock table, atomic stock check + decrement in order transaction, stock API endpoint, out-of-stock UI on product/cart pages, inventory card on kiosk display
 
 ## Changelog
 
 ### 2026-02-17
+
+**Inventory tracking**
+- New `product_inventory` table (product_slug, quantity) with initial stock seeded on first run
+- Server-side stock check + atomic decrement inside `createOrder()` transaction — rejects orders when stock insufficient
+- `GET /api/stock` endpoint returns current stock levels per product slug
+- Product detail page: fetches stock on mount, shows "Out of Stock" (disabled button) or "Only X left" indicator
+- Cart page: validates cart quantities against stock, disables checkout when items exceed availability
+- Schema.org `availability` on product pages updates dynamically (InStock/OutOfStock)
+- Display dashboard: new "Inventory" card showing stock per product
 
 **SEO: structured data, meta tags, sitemap, about page, Merchant Center feed**
 - Per-page `<meta name="description">` and Open Graph tags (`og:title`, `og:description`, `og:type`, `og:url`, `og:image`) on all public pages

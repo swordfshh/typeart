@@ -24,6 +24,7 @@
 	let added = $state(false);
 	let kitAcknowledged = $state(false);
 	let activeImage = $state(0);
+	let stock = $state<number | null>(null);
 
 	const images = $derived(
 		Array.from({ length: product.imageCount }, (_, i) => ({
@@ -52,8 +53,17 @@
 		setTimeout(() => (added = false), 1500);
 	}
 
+	let outOfStock = $derived(stock === 0);
+	let lowStock = $derived(stock !== null && stock > 0 && stock <= 3);
+
 	onMount(() => {
 		cartStore.hydrate();
+		fetch('/api/stock')
+			.then((r) => r.json())
+			.then((data) => {
+				stock = data[product.slug] ?? 0;
+			})
+			.catch(() => {});
 	});
 </script>
 
@@ -81,7 +91,7 @@
 			"@type": "Offer",
 			"price": product.price.toFixed(2),
 			"priceCurrency": "USD",
-			"availability": "https://schema.org/InStock",
+			"availability": outOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
 			"url": `https://typeart.co/store/${product.slug}`,
 			"shippingDetails": {
 				"@type": "OfferShippingDetails",
@@ -183,10 +193,17 @@
 				<div class="price-col">
 					<span class="total-price">${totalPrice.toFixed(2)}</span>
 					<span class="free-ship">Free shipping</span>
+					{#if lowStock}
+						<span class="low-stock">Only {stock} left</span>
+					{/if}
 				</div>
-				<button class="add-btn" onclick={addToCart} class:added disabled={!kitAcknowledged}>
-					{added ? 'Added!' : 'Add to Cart'}
-				</button>
+				{#if outOfStock}
+					<button class="add-btn out-of-stock" disabled>Out of Stock</button>
+				{:else}
+					<button class="add-btn" onclick={addToCart} class:added disabled={!kitAcknowledged}>
+						{added ? 'Added!' : 'Add to Cart'}
+					</button>
+				{/if}
 			</div>
 
 			<p class="configure-link">After building, <a href="/configure">configure your keymap</a> live in the browser. <a href="/about">Learn more</a> about what's in the kit.</p>
@@ -387,6 +404,18 @@
 
 	.add-btn.added {
 		background-color: var(--green);
+	}
+
+	.add-btn.out-of-stock {
+		background-color: var(--base01);
+		color: var(--base00);
+		opacity: 1;
+	}
+
+	.low-stock {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--yellow);
 	}
 
 	.configure-link {

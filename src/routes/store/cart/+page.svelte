@@ -6,10 +6,32 @@
 
 	let checkingOut = $state(false);
 	let checkoutError = $state('');
+	let stock = $state<Record<string, number>>({});
 
 	onMount(() => {
 		cartStore.hydrate();
+		fetch('/api/stock')
+			.then((r) => r.json())
+			.then((data) => { stock = data; })
+			.catch(() => {});
 	});
+
+	// Aggregate cart quantities per slug and check against stock
+	let stockIssues = $derived.by(() => {
+		const qtyBySlug = new Map<string, number>();
+		for (const item of cartStore.items) {
+			qtyBySlug.set(item.productSlug, (qtyBySlug.get(item.productSlug) ?? 0) + item.quantity);
+		}
+		const issues: Record<string, { requested: number; available: number }> = {};
+		for (const [slug, qty] of qtyBySlug) {
+			const available = stock[slug] ?? Infinity;
+			if (qty > available) {
+				issues[slug] = { requested: qty, available };
+			}
+		}
+		return issues;
+	});
+	let hasStockIssues = $derived(Object.keys(stockIssues).length > 0);
 
 	function itemTotal(item: (typeof cartStore.items)[0]): number {
 		return (item.basePrice + (item.colorPrice ?? 0) + item.stabilizer.price + (item.wristRest ? item.wristRestPrice : 0)) * item.quantity;
@@ -82,7 +104,14 @@
 						<span class="qty-value">{item.quantity}</span>
 						<button class="qty-btn" onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)}>+</button>
 					</div>
-					<span class="item-total">${itemTotal(item).toFixed(2)}</span>
+					<span class="item-total">
+						${itemTotal(item).toFixed(2)}
+						{#if stockIssues[item.productSlug]}
+							<span class="stock-warn">
+								Only {stockIssues[item.productSlug].available} available
+							</span>
+						{/if}
+					</span>
 					<button class="remove-btn" onclick={() => cartStore.removeItem(item.id)} aria-label="Remove">
 						&times;
 					</button>
@@ -97,7 +126,7 @@
 			</div>
 			<div class="cart-actions">
 				<a href="/store" class="continue-link">Continue Shopping</a>
-				<button class="checkout-btn" onclick={handleCheckout} disabled={checkingOut}>
+				<button class="checkout-btn" onclick={handleCheckout} disabled={checkingOut || hasStockIssues}>
 					{checkingOut ? 'Redirecting...' : 'Checkout'}
 				</button>
 			</div>
@@ -304,5 +333,12 @@
 		font-size: 0.85rem;
 		color: var(--red);
 		text-align: right;
+	}
+
+	.stock-warn {
+		display: block;
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: var(--red);
 	}
 </style>

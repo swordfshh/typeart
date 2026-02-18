@@ -70,6 +70,20 @@ function toCents(dollars: number): number {
 	return Math.round(dollars * 100);
 }
 
+export function getStock(slug: string): number {
+	const row = db.prepare('SELECT quantity FROM product_inventory WHERE product_slug = ?').get(slug) as { quantity: number } | undefined;
+	return row?.quantity ?? 0;
+}
+
+export function getStockAll(): Record<string, number> {
+	const rows = db.prepare('SELECT product_slug, quantity FROM product_inventory').all() as { product_slug: string; quantity: number }[];
+	const result: Record<string, number> = {};
+	for (const row of rows) {
+		result[row.product_slug] = row.quantity;
+	}
+	return result;
+}
+
 export function createOrder(userId: string, items: CartItem[]): string {
 	if (!items || items.length === 0) {
 		throw new OrderError('Cart is empty');
@@ -134,6 +148,12 @@ export function createOrder(userId: string, items: CartItem[]): string {
 		totalCents += unitCents * item.quantity;
 	}
 
+	// Aggregate requested quantities per product slug
+	const qtyBySlug = new Map<string, number>();
+	for (const item of items) {
+		qtyBySlug.set(item.productSlug, (qtyBySlug.get(item.productSlug) ?? 0) + item.quantity);
+	}
+
 	const insertOrder = db.prepare(
 		'INSERT INTO orders (id, user_id, total_cents) VALUES (?, ?, ?)'
 	);
@@ -141,8 +161,28 @@ export function createOrder(userId: string, items: CartItem[]): string {
 		`INSERT INTO order_items (id, order_id, product_slug, product_name, base_price_cents, color, color_surcharge_cents, stabilizer_name, stabilizer_price_cents, wrist_rest, wrist_rest_price_cents, quantity)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
+	const checkStock = db.prepare('SELECT quantity FROM product_inventory WHERE product_slug = ?');
+	const decrementStock = db.prepare(
+		'UPDATE product_inventory SET quantity = quantity - ? WHERE product_slug = ?'
+	);
 
 	const run = db.transaction(() => {
+		// Check and decrement stock atomically
+		for (const [slug, qty] of qtyBySlug) {
+			const row = checkStock.get(slug) as { quantity: number } | undefined;
+			const available = row?.quantity ?? 0;
+			if (available < qty) {
+				const product = productCatalog.get(slug);
+				const name = product?.name ?? slug;
+				throw new OrderError(
+					available === 0
+						? `${name} is out of stock`
+						: `Only ${available} ${name} available`
+				);
+			}
+			decrementStock.run(qty, slug);
+		}
+
 		insertOrder.run(orderId, userId, totalCents);
 		for (const item of items) {
 			// Store catalog-verified prices, not client-submitted values

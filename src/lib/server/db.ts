@@ -118,7 +118,21 @@ function createDb(): Database.Database {
 		CREATE INDEX IF NOT EXISTS idx_security_logs_event ON security_logs(event);
 		CREATE INDEX IF NOT EXISTS idx_security_logs_created ON security_logs(created_at);
 		CREATE INDEX IF NOT EXISTS idx_webhook_events_processed ON webhook_events(processed_at);
+
+		CREATE TABLE IF NOT EXISTS product_inventory (
+			product_slug TEXT PRIMARY KEY,
+			quantity INTEGER NOT NULL DEFAULT 0
+		);
 	`);
+
+	// Seed inventory if empty
+	const invCount = db.prepare('SELECT COUNT(*) as c FROM product_inventory').get() as { c: number };
+	if (invCount.c === 0) {
+		db.exec(`
+			INSERT INTO product_inventory (product_slug, quantity) VALUES ('type-40', 2);
+			INSERT INTO product_inventory (product_slug, quantity) VALUES ('type-qaz', 1);
+		`);
+	}
 
 	// Migrations for existing databases
 	const cols = db.prepare(`PRAGMA table_info(order_items)`).all() as { name: string }[];

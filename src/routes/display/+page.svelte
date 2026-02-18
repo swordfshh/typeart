@@ -178,6 +178,18 @@
 					<span class="ts-value top">{data.stats.top_wpm}</span>
 				</div>
 			</div>
+
+			<div class="inventory">
+				<h2>Inventory</h2>
+				<div class="inventory-list">
+					{#each data.inventory as item}
+						<div class="inv-row">
+							<span class="inv-name">{item.product_slug}</span>
+							<span class="inv-qty" class:out={item.quantity === 0}>{item.quantity}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -575,5 +587,41 @@
 
 	.ts-value.top {
 		color: var(--magenta);
+	}
+
+	/* ── Inventory ── */
+	.inventory {
+		background: var(--base02);
+		border: 1px solid var(--base01);
+		border-radius: 12px;
+		padding: 12px 16px;
+	}
+
+	.inventory-list {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.inv-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.inv-name {
+		font-size: 0.85rem;
+		color: var(--base0);
+	}
+
+	.inv-qty {
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: var(--green);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.inv-qty.out {
+		color: var(--red);
 	}
 </style>

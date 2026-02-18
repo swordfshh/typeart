@@ -72,5 +72,9 @@ export const load: PageServerLoad = async () => {
 		order_count: number;
 	}[];
 
-	return { stats, recentOrders, popularProducts };
+	const inventory = db
+		.prepare('SELECT product_slug, quantity FROM product_inventory ORDER BY product_slug')
+		.all() as { product_slug: string; quantity: number }[];
+
+	return { stats, recentOrders, popularProducts, inventory };
 };

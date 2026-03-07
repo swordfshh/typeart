@@ -29,7 +29,7 @@
 		<div class="status-info">
 			{#if deviceStore.error}
 				<span class="indicator error"></span>
-				<span class="error-text">{deviceStore.error}</span>
+				<span class="error-text">{@html deviceStore.error}</span>
 			{:else}
 				<span class="indicator disconnected"></span>
 				<span class="status-text">No device connected</span>
@@ -111,6 +111,18 @@
 	.error-text {
 		font-size: 0.875rem;
 		color: var(--red);
+	}
+
+	.error-text :global(a) {
+		color: var(--blue);
+		text-decoration: underline;
+	}
+
+	.error-text :global(code) {
+		font-size: 0.8em;
+		background-color: var(--base03);
+		padding: 1px 4px;
+		border-radius: var(--radius-sm);
 	}
 
 	.btn {

@@ -57,8 +57,10 @@ class DeviceStore {
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Connection failed';
 			if (msg.toLowerCase().includes('failed to open') || msg.toLowerCase().includes('denied')) {
-				this.error =
-					'Failed to open device. On Linux, you need a udev rule for HID access. Download 99-typeart.rules from this site, then run: sudo cp 99-typeart.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger';
+				const isLinux = /Linux/.test(navigator.userAgent);
+				this.error = isLinux
+					? 'Failed to open device. Linux requires a udev rule for HID access — <a href="/99-typeart.rules" download>download 99-typeart.rules</a>, then run: <code>sudo cp 99-typeart.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger</code>'
+					: 'Failed to open device. Make sure no other application is using it.';
 			} else {
 				this.error = msg;
 			}

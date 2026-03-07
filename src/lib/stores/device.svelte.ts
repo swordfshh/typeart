@@ -59,7 +59,7 @@ class DeviceStore {
 			if (msg.toLowerCase().includes('failed to open') || msg.toLowerCase().includes('denied')) {
 				const isLinux = /Linux/.test(navigator.userAgent);
 				this.error = isLinux
-					? 'Failed to open device. Linux requires a udev rule for HID access — <a href="/99-typeart.rules" download>download 99-typeart.rules</a>, then run: <code>sudo cp 99-typeart.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger</code>'
+					? 'Failed to open device. Linux requires a udev rule for HID access. Run: <code>echo \'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666"\' | sudo tee /etc/udev/rules.d/99-hid.rules && sudo udevadm control --reload-rules && sudo udevadm trigger</code> then reconnect.'
 					: 'Failed to open device. Make sure no other application is using it.';
 			} else {
 				this.error = msg;

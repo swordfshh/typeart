@@ -70,6 +70,7 @@ function parseBlock(block: string): Product | null {
 		colors: (lists['colors'] ?? []).map(parseColor),
 		stabilizers: (lists['stabilizers'] ?? []).map(parseStabilizer),
 		wristRestPrice: parseFloat(fields['wrist-rest'] ?? '0'),
+		buildGuide: fields['build-guide'] || null,
 		specs: (lists['specs'] ?? []).map(parseSpec)
 	};
 }

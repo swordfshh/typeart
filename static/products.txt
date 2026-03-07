@@ -17,6 +17,7 @@ stabilizers:
   - None | 0.00
   - Durock V3 screw-in | 15.00
 
+build-guide: /guides/build-guide.pdf
 wrist-rest: 19.00
 
 specs:
@@ -53,6 +54,7 @@ stabilizers:
   - None | 0.00
   - Durock V3 screw-in | 15.00
 
+build-guide: /guides/build-guide.pdf
 wrist-rest: 19.00
 
 specs:

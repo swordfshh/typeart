@@ -211,7 +211,9 @@
 				{/if}
 			</div>
 
-			<p class="configure-link">After building, <a href="/configure">configure your keymap</a> live in the browser. <a href="/about">Learn more</a> about what's in the kit.</p>
+			<p class="configure-link">
+			{#if product.buildGuide}<a href={product.buildGuide} target="_blank" rel="noopener">Build guide (PDF)</a> · {/if}After building, <a href="/configure">configure your keymap</a> live in the browser. <a href="/about">Learn more</a> about what's in the kit.
+		</p>
 		</div>
 	</div>
 

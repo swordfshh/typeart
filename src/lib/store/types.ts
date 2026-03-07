@@ -24,6 +24,7 @@ export interface Product {
 	colors: ColorOption[];
 	stabilizers: StabilizerOption[];
 	wristRestPrice: number;
+	buildGuide: string | null;
 	specs: SpecItem[];
 }
 

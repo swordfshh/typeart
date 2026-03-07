@@ -59,7 +59,7 @@ class DeviceStore {
 			if (msg.toLowerCase().includes('failed to open') || msg.toLowerCase().includes('denied')) {
 				const isLinux = /Linux/.test(navigator.userAgent);
 				this.error = isLinux
-					? 'Failed to open device. Linux requires a udev rule for HID access. Run: <code>echo \'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666"\' | sudo tee /etc/udev/rules.d/99-hid.rules && sudo udevadm control --reload-rules && sudo udevadm trigger</code> then reconnect.'
+					? 'Failed to open device. On Linux, browsers need permission to access USB HID devices like keyboards. This one-liner creates a small config file that allows it, then reloads the rules: <code>echo \'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666"\' | sudo tee /etc/udev/rules.d/99-hid.rules && sudo udevadm control --reload-rules && sudo udevadm trigger</code> Then reconnect your keyboard.'
 					: 'Failed to open device. Make sure no other application is using it.';
 			} else {
 				this.error = msg;
